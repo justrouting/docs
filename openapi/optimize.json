@@ -1,7 +1,7 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "JustRouting VROOM API",
+    "title": "JustRouting Optimize API",
     "version": "v1",
     "description": "Hosted VROOM vehicle routing solver. Send a JSON problem description (vehicles + jobs/shipments), receive optimized routes. Distances and durations come from the real road network (OSRM). The input/output format is compatible with the upstream VROOM API; JustRouting adds `profile: car|motorcycle` per vehicle and `geometry: true` for polyline output.",
     "contact": {
@@ -22,10 +22,10 @@
     }
   ],
   "paths": {
-    "/vroom": {
+    "/optimize": {
       "post": {
         "summary": "Solve a vehicle routing problem",
-        "operationId": "solveVroom",
+        "operationId": "solveOptimize",
         "requestBody": {
           "required": true,
           "content": {

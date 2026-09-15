@@ -41,8 +41,8 @@
             "openapi": "openapi/osrm.json"
           },
           {
-            "group": "VROOM (OpenAPI)",
-            "openapi": "openapi/vroom.json"
+            "group": "Optimize (OpenAPI)",
+            "openapi": "openapi/optimize.json"
           }
         ]
       },
