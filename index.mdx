@@ -1,0 +1,77 @@
+---
+title: "JustRouting Docs"
+description: "Super lightweight routing APIs for Southeast Asia — directions, distance matrix, and fleet optimization."
+---
+
+# JustRouting Docs
+
+Routing APIs tuned for Southeast Asia: road-accurate **Directions**, **Distance Matrix**, and **Fleet Optimization**, built on OSRM, VROOM, and OpenStreetMap. Standard protocols, zero lock-in.
+
+<CardGroup cols={3}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Get a key, make your first request, and draw the route on a map in 3 minutes
+  </Card>
+  <Card title="Directions API" icon="route" href="/api-reference/directions">
+    Routes between two points or ordered waypoints — distance, duration, and turn-by-turn steps
+  </Card>
+  <Card title="Distance Matrix" icon="table" href="/api-reference/distance-matrix">
+    N×N travel time and distance matrix in a single request
+  </Card>
+  <Card title="Fleet Optimization" icon="truck" href="/api-reference/fleet-optimization">
+    Multi-vehicle route optimization powered by VROOM, with time windows and capacity
+  </Card>
+  <Card title="Map Matching" icon="crosshair" href="/api-reference/map-matching">
+    Snap GPS traces to the real road network
+  </Card>
+  <Card title="SDKs" icon="package" href="/guides/sdks">
+    Official Python, JavaScript, and Go clients — zero dependencies
+  </Card>
+</CardGroup>
+
+## Basics
+
+| | |
+| --- | --- |
+| **Base URL** | `https://api.justrouting.tech` |
+| **Authentication** | `Authorization: Bearer <YOUR_API_KEY>` |
+| **Coordinate format** | `lng,lat` (longitude first), multiple coordinates separated by `;` |
+| **Coverage** | 11 Southeast Asian countries, see [Coverage](/coverage) |
+| **Free tier** | 100 requests/day, no credit card required |
+
+<Info>
+  Want to try it in the browser first? Open the [Live Demo](https://justrouting.tech) and drag the markers on the map.
+</Info>
+
+## A minimal request
+
+```bash
+curl "https://api.justrouting.tech/osrm/route/v1/driving/103.708362,1.357371;103.984748,1.352212?overview=full" \
+  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+```
+
+```json response.json
+{
+  "code": "Ok",
+  "routes": [
+    {
+      "legs": [{ "summary": "", "distance": 36911.2, "duration": 2225.6 }],
+      "weight_name": "routability",
+      "geometry": "_bhGmo~wRPMNKNIXQvHsErAw@...",
+      "distance": 36911.2,
+      "duration": 2225.6
+    }
+  ],
+  "waypoints": [
+    { "name": "", "location": [103.708362, 1.357371] },
+    { "name": "", "location": [103.984748, 1.352212] }
+  ]
+}
+```
+
+No key yet? [Sign up for free](https://justrouting.tech/signup) or jump to the [Quickstart](/quickstart).
+
+## Need help?
+
+- Source code and SDKs: [github.com/justrouting](https://github.com/justrouting)
+- Email: [hello@justrouting.tech](mailto:hello@justrouting.tech)
+- Usage and quotas: [Dashboard](https://justrouting.tech/dashboard)

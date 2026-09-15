@@ -1,0 +1,92 @@
+---
+title: "SDKs"
+description: "Official JustRouting client libraries for Python, JavaScript/TypeScript, and Go — zero dependencies."
+---
+
+# SDKs
+
+Official clients, all **zero third-party dependencies** and open source (MIT). They cover the three API families — Directions, Distance Matrix, Fleet Optimization — with typed errors and built-in 429 retries.
+
+| Language | Package | Install | Source |
+| --- | --- | --- | --- |
+| Python 3.9+ | `justrouting` | `pip install justrouting` | [py-client](https://github.com/justrouting/py-client) |
+| JavaScript / TypeScript | `@justrouting/client` | `npm install @justrouting/client` | [js-client](https://github.com/justrouting/js-client) |
+| Go | `github.com/justrouting/go-client` | `go get github.com/justrouting/go-client` | [go-client](https://github.com/justrouting/go-client) |
+
+## Shared conventions
+
+- `new Client(apiKey)` attaches `Authorization: Bearer` to every request automatically
+- Coordinates always use `[lng, lat]` order
+- Unreachable matrix cells come back as `null` (not 0) — you decide how to handle them
+- Zero dependencies means they run on Lambda, Cloudflare Workers, and edge environments as-is
+
+## Python example
+
+```python
+import justrouting
+
+client = justrouting.Client("YOUR_API_KEY")
+
+# Directions
+route = client.routes.get(justrouting.RouteRequest(
+    origin=[103.708362, 1.357371],
+    destination=[103.984748, 1.352212],
+    overview="full",
+))
+
+# Distance Matrix (just the depot row)
+m = client.matrix.get(justrouting.MatrixRequest(
+    coordinates=[[103.708362, 1.357371], [103.8514, 1.2897], [103.984748, 1.352212]],
+    sources=[0], destinations=[1, 2],
+))
+print(m.duration(0, 1))  # seconds or None
+
+# Fleet Optimization
+solution = client.vroom.solve(justrouting.VroomRequest(
+    vehicles=[justrouting.Vehicle(id=1, profile="car",
+        start=[103.792, 1.324], end=[103.792, 1.324])],
+    jobs=[justrouting.Job(id=1, location=[103.797, 1.310])],
+))
+```
+
+## JavaScript example
+
+```ts
+import { Client } from '@justrouting/client';
+
+const client = new Client('YOUR_API_KEY', { timeout: 10 });
+
+const route = await client.routes.get({
+  origin: [103.708362, 1.357371],
+  destination: [103.984748, 1.352212],
+});
+
+console.log(`Distance: ${(route.distance / 1000).toFixed(1)} km`);
+console.log(`Duration: ${Math.round(route.duration / 60)} min`);
+```
+
+## Go example
+
+```go
+client := justrouting.NewClient("YOUR_API_KEY",
+    justrouting.WithHTTPClient(&http.Client{Timeout: 10 * time.Second}),
+)
+
+route, err := client.Routes.Get(ctx, &justrouting.RouteRequest{
+    Origin:      []float64{103.708362, 1.357371},
+    Destination: []float64{103.984748, 1.352212},
+})
+if err != nil {
+    log.Fatal(err)
+}
+fmt.Printf("Distance: %.1f km\n", route.Distance/1000)
+```
+
+## No SDK? No problem
+
+The SDKs are thin wrappers over plain REST. You can always call the HTTP endpoints directly — every API Reference page has curl examples.
+
+## Related
+
+- [Quickstart](/quickstart)
+- [Authentication](/authentication)

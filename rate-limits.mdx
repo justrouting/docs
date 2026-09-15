@@ -1,0 +1,49 @@
+---
+title: "Rate Limits & Quotas"
+description: "Request quotas, rate limits, and matrix/VRP size limits per plan, plus how 429 responses behave."
+---
+
+# Rate Limits & Quotas
+
+## Plans at a glance
+
+| | Free | Hobby |
+| --- | --- | --- |
+| Price | $0 / forever | $8 / month |
+| Requests | 100 / day | 10,000 / day |
+| Rate limit | 5 req/s | 10 req/s |
+| Distance Matrix size | 100 × 100 | 500 × 500 |
+| Fleet Optimization size | 10 vehicles / 100 tasks | 50 vehicles / 1,000 tasks |
+| Coverage | 11 SEA countries | 11 SEA countries |
+
+One "request" = one HTTP request. Matrix and Fleet Optimization are counted per request, not per matrix cell or per task.
+
+Upgrade or see full pricing: [justrouting.tech/pricing](https://justrouting.tech/pricing).
+
+## What happens when you exceed the limit
+
+Requests over quota return HTTP `429` with a body like:
+
+```json
+{ "code": "rate_limited", "message": "daily request quota exceeded" }
+```
+
+Response headers tell you when to retry:
+
+```bash
+X-RateLimit-Limit: 100        # daily quota
+X-RateLimit-Remaining: 0      # remaining today
+Retry-After: 3600             # seconds to wait before retrying
+```
+
+## Best practices
+
+- Retry `429` and `5xx` with **exponential backoff**, honoring `Retry-After` (the official SDKs do this for you)
+- Schedule batch jobs for off-peak hours, or self-throttle at `5 req/s` (Free) / `10 req/s` (Hobby)
+- Check daily usage anytime in the [Dashboard](https://justrouting.tech/dashboard) (per-day counts for the last 7 days)
+- Outgrew the quota? [Upgrade to Hobby](https://justrouting.tech/pricing) or contact [hello@justrouting.tech](mailto:hello@justrouting.tech) for custom limits
+
+## Related
+
+- [Errors](/errors)
+- [Authentication](/authentication)

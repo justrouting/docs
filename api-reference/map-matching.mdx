@@ -1,0 +1,101 @@
+---
+title: "Map Matching API"
+description: "Snap noisy GPS traces to the real road network and get back the actual driven route."
+---
+
+# Map Matching API
+
+Snaps a GPS trace to the real roads: send a timestamped coordinate sequence, get back the matched route (geometry, distance, duration) plus where each point landed on the network. Useful for cleaning delivery traces, analyzing actual driven paths, and mileage accounting.
+
+Powered by the OSRM Match service.
+
+## Endpoint
+
+```
+GET https://api.justrouting.tech/osrm/match/v1/{profile}/{coordinates}
+```
+
+| URL parameter | Description |
+| --- | --- |
+| `profile` | `driving` or `motorcycle` |
+| `coordinates` | Trace points `{lng},{lat};{lng},{lat};...` — requires the `timestamps` parameter |
+
+## Request Parameters
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `timestamps` | string | — | UNIX timestamps in seconds for each point, **monotonically increasing**, one per coordinate |
+| `radiuses` | string | `5` | GPS accuracy in meters per point (standard deviation of the true position) |
+| `steps` | bool | `false` | Return turn-by-turn steps |
+| `geometries` | string | `polyline` | Same as [Directions](/api-reference/directions) |
+| `overview` | string | `simplified` | Same as [Directions](/api-reference/directions) |
+| `gaps` | string | `split` | Split into sub-traces on large timestamp jumps (`split` / `ignore`) |
+| `tidy` | bool | `false` | Allow removing noisy points to improve matching quality |
+
+<Info>
+  Large timestamp gaps (>60s) or improbable jumps **split the trace automatically** into multiple sub-traces — that's a feature, not a bug: one request can return several `matchings`.
+</Info>
+
+## Quickstart
+
+<CodeGroup>
+```bash curl
+curl "https://api.justrouting.tech/osrm/match/v1/driving/103.71,1.35;103.72,1.35;103.73,1.35?timestamps=1694500000;1694500030;1694500060&radiuses=10;10;10&geometries=geojson" \
+  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+```
+
+```python Python
+import justrouting
+
+client = justrouting.Client("YOUR_API_KEY")
+
+matching = client.match.get(justrouting.MatchRequest(
+    coordinates=[[103.71, 1.35], [103.72, 1.35], [103.73, 1.35]],
+    timestamps=[1694500000, 1694500030, 1694500060],
+    radiuses=[10, 10, 10],
+))
+
+for route in matching.matchings:
+    print(f"confidence: {route.confidence:.2f}, distance: {route.distance:.0f} m")
+```
+</CodeGroup>
+
+## Response
+
+```json response-example.json
+{
+  "code": "Ok",
+  "tracepoints": [
+    { "location": [103.7099, 1.3501], "matchings_index": 0, "waypoint_index": 0, "alternatives_count": 0 },
+    { "location": [103.72, 1.35], "matchings_index": 0, "waypoint_index": 1, "alternatives_count": 2 },
+    null
+  ],
+  "matchings": [
+    {
+      "confidence": 0.984,
+      "geometry": "...",
+      "distance": 2230.0,
+      "duration": 300.0
+    }
+  ]
+}
+```
+
+### Response fields
+
+| Field | Description |
+| --- | --- |
+| `tracepoints[]` | One entry per input point; `null` marks dropped outliers; `matchings_index` says which sub-trace it belongs to |
+| `matchings[].confidence` | Matching confidence, `0-1` |
+| `matchings[].geometry` / `distance` / `duration` | The matched route that was actually driven |
+
+## Best practices
+
+- Use device-reported accuracy for `radiuses`: `Location.getAccuracy()` (Android) / `CLLocation.horizontalAccuracy` (iOS)
+- High-frequency sampling (1–5s) gives the best traces; slow-speed drift points get dropped automatically
+- All input coordinates must be in the same country (see [Coverage](/coverage))
+
+## Related
+
+- [Directions API](/api-reference/directions)
+- [Errors](/errors)

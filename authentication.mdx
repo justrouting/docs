@@ -1,0 +1,71 @@
+---
+title: "Authentication"
+description: "How API keys work in JustRouting — creating keys, sending them, and understanding authentication errors."
+---
+
+# Authentication
+
+Every JustRouting API request requires an API key, sent as an HTTP Bearer header:
+
+```bash
+Authorization: Bearer <YOUR_API_KEY>
+```
+
+## Creating and managing keys
+
+1. Click **Create API Key** in the [Dashboard](https://justrouting.tech/dashboard)
+2. The key is shown in full only once — save it immediately
+3. You can create multiple keys and **Revoke** a compromised key at any time
+
+```bash
+# Store it in an environment variable, never in your code repository
+export JUSTROUTING_API_KEY="jr_live_..."
+```
+
+## What authentication failures look like
+
+Missing `Authorization` header:
+
+```json
+{ "error": "missing Authorization header" }
+```
+
+Invalid or revoked key:
+
+```json
+{ "error": "invalid or revoked API key" }
+```
+
+Both return HTTP `401`. Fixes: check the header spelling (`Authorization: Bearer ...` — there is a space after `Bearer`) and make sure the key has not been revoked.
+
+<Warning>
+  **Never put your API key in public browser-side code.** Anyone who obtains the key can spend your quota in your name. Browser apps should proxy requests through your own backend, or contact [hello@justrouting.tech](mailto:hello@justrouting.tech) to discuss direct-from-browser options.
+</Warning>
+
+## Example requests
+
+<CodeGroup>
+```bash curl
+curl "https://api.justrouting.tech/osrm/route/v1/driving/103.708362,1.357371;103.984748,1.352212" \
+  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+```
+
+```python Python
+import justrouting
+
+client = justrouting.Client("YOUR_API_KEY")  # sent automatically on every request
+```
+
+```ts JavaScript
+const client = new Client(process.env.JUSTROUTING_API_KEY);
+```
+
+```go Go
+client := justrouting.NewClient("YOUR_API_KEY")
+```
+</CodeGroup>
+
+## Related
+
+- [Rate Limits](/rate-limits) — quotas and 429 behavior
+- [Errors](/errors) — the complete error code reference

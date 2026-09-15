@@ -1,0 +1,79 @@
+---
+title: "Nearest API"
+description: "Snap a coordinate to the road network and get the nearest routable segments."
+---
+
+# Nearest API
+
+Snaps a single coordinate to the road network and returns the nearest `n` segments. Useful for validating whether a coordinate is routable, getting the exact snapped position, and obtaining `hint` values that speed up subsequent requests.
+
+Powered by the OSRM Nearest service.
+
+## Endpoint
+
+```
+GET https://api.justrouting.tech/osrm/nearest/v1/{profile}/{coordinates}
+```
+
+| URL parameter | Description |
+| --- | --- |
+| `profile` | `driving` or `motorcycle` |
+| `coordinates` | A **single** `{lng},{lat}` pair |
+
+## Request Parameters
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `number` | int | `1` | Number of nearest segments to return |
+| `bearings` | string | — | Restrict by bearing, e.g. `0,20` = true north ±20° |
+
+## Quickstart
+
+```bash
+curl "https://api.justrouting.tech/osrm/nearest/v1/driving/103.708362,1.357371?number=2" \
+  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+```
+
+## Response
+
+```json response-example.json
+{
+  "code": "Ok",
+  "waypoints": [
+    {
+      "name": "Bayfront Avenue",
+      "location": [103.708799, 1.357033],
+      "distance": 4.15,
+      "hint": "KSoKADRYroqUBAEAEAAAABkAAAAGAAAAAAAAABhnCQCLtwAA_0vMAKlYIQM8TMwArVghAwEAAQH1a66g",
+      "nodes": [2264199819, 0]
+    },
+    {
+      "name": "Temasek Boulevard",
+      "location": [103.709782, 1.357132],
+      "distance": 11.81,
+      "hint": "KSoKADRYroqUBAEABgAAAAAAAAAAAAAAKQAAABhnCQCLtwAA7kvMAAxZIQM8TMwArVghAwAAAQH1a66g",
+      "nodes": [0, 2045820592]
+    }
+  ]
+}
+```
+
+### Response fields
+
+| Field | Description |
+| --- | --- |
+| `waypoints[]` | Snap results, sorted by distance |
+| `waypoints[].location` | The exact snapped position `[lng, lat]` |
+| `waypoints[].distance` | Offset from the input coordinate to the snapped point, in **meters** |
+| `waypoints[].hint` | Opaque segment identifier — pass it back via the `hints` parameter of route/table to speed up snapping |
+| `waypoints[].nodes` | Pair of OSM node ids |
+
+## Typical uses
+
+- **Coordinate cleanup**: validate with `nearest` first — a large `distance` means the coordinate is far from any road
+- **Speed up hot paths**: cache the `hint` and reuse it in subsequent `route`/`table` requests
+
+## Related
+
+- [Directions API](/api-reference/directions)
+- [Errors](/errors)

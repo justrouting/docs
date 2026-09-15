@@ -1,0 +1,102 @@
+---
+title: "Draw a Route on a Map"
+description: "Render JustRouting route geometry with Leaflet, Mapbox GL JS, or react-leaflet."
+---
+
+# Draw a Route on a Map
+
+Drawing a route takes three steps: request `geometries=geojson`, grab `routes[0].geometry`, hand it to your map library. No polyline decoding needed.
+
+## Leaflet (vanilla JS)
+
+```html
+<div id="map" style="height: 400px"></div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  const map = L.map('map').setView([1.357, 103.85], 12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors',
+  }).addTo(map);
+
+  async function drawRoute() {
+    const res = await fetch(
+      'https://api.justrouting.tech/osrm/route/v1/driving/' +
+      '103.708362,1.357371;103.984748,1.352212' +
+      '?geometries=geojson&overview=full',
+      { headers: { Authorization: 'Bearer ' + API_KEY } }
+    );
+    const data = await res.json();
+    if (data.code !== 'Ok') throw new Error(data.code);
+
+    const geometry = data.routes[0].geometry; // GeoJSON LineString
+    L.geoJSON(geometry, { style: { color: '#4f46e5', weight: 5 } }).addTo(map);
+    map.fitBounds(L.geoJSON(geometry).getBounds());
+  }
+</script>
+```
+
+<Note>
+  The API key above would be exposed in the browser. In production, proxy requests through your own backend (see [Authentication](/authentication)).
+</Note>
+
+## Mapbox GL JS
+
+```js
+const res = await fetch(
+  'https://api.justrouting.tech/osrm/route/v1/driving/' +
+  '103.708362,1.357371;103.984748,1.352212?geometries=geojson&overview=full',
+  { headers: { Authorization: 'Bearer ' + API_KEY } }
+);
+const data = await res.json();
+
+map.addSource('route', {
+  type: 'geojson',
+  data: { type: 'Feature', properties: {}, geometry: data.routes[0].geometry },
+});
+map.addLayer({
+  id: 'route',
+  type: 'line',
+  source: 'route',
+  layout: { 'line-join': 'round', 'line-cap': 'round' },
+  paint: { 'line-color': '#4f46e5', 'line-width': 5 },
+});
+```
+
+## React + react-leaflet
+
+```tsx
+import { MapContainer, TileLayer, Polyline } from 'react-leaflet';
+import polyline from '@mapbox/polyline';
+
+export function RouteMap({ route }: { route: any }) {
+  // polyline format: decode to [lat, lng][]
+  const positions = polyline.decode(route.geometry).map(([lat, lng]) => [lat, lng]);
+  return (
+    <MapContainer center={positions[0]} zoom={12} style={{ height: '400px' }}>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <Polyline positions={positions} pathOptions={{ color: '#4f46e5', weight: 5 }} />
+    </MapContainer>
+  );
+}
+```
+
+## Drawing multiple routes (alternatives / fleets)
+
+- **Alternative routes**: request `alternatives=2`, iterate `data.routes[]`, give each a different color
+- **Fleet Optimization**: each `routes[i].geometry` in the response is one vehicle's route — color by vehicle
+
+## Base map options
+
+JustRouting returns only the route geometry — pick any base map (standard OSM tiles are free for demos):
+
+| Base map | Notes |
+| --- | --- |
+| OpenStreetMap standard tiles | Free, good for demos and internal tools |
+| Mapbox Streets | Requires a Mapbox token |
+| Google Maps | Requires a Google key |
+
+## Related
+
+- [Directions API](/api-reference/directions)
+- [Turn-by-Turn Navigation](/guides/turn-by-turn)

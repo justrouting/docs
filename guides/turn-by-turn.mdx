@@ -1,0 +1,105 @@
+---
+title: "Turn-by-Turn Navigation"
+description: "Extract maneuver instructions from route steps to build navigation UI."
+---
+
+# Turn-by-Turn Navigation
+
+Request `steps=true` and every entry in `legs[].steps[]` is one maneuver plus a stretch of straight-line driving. Use them to build navigation lists, voice prompts, or per-segment highlighting.
+
+## Getting the steps
+
+```bash
+curl "https://api.justrouting.tech/osrm/route/v1/driving/103.708362,1.357371;103.984748,1.352212?steps=true&overview=full" \
+  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+```
+
+```json step-example.json
+{
+  "distance": 152.3,
+  "duration": 15.6,
+  "geometry": "{lu_IypwpAVrAvAdI",
+  "name": "Lortzingstraße",
+  "ref": "A1",
+  "mode": "driving",
+  "maneuver": { "type": "turn", "modifier": "right", "location": [103.71, 1.35] },
+  "intersections": [...]
+}
+```
+
+## Step fields
+
+| Field | Description |
+| --- | --- |
+| `maneuver.type` | Action: `turn`, `depart`, `arrive`, `merge`, `on ramp`, `off ramp`, `roundabout`, `fork`, `continue`, ... |
+| `maneuver.modifier` | Direction: `left`, `slight left`, `straight`, `slight right`, `right`, `sharp left`, `sharp right`, `uturn` |
+| `maneuver.location` | Turn position `[lng, lat]` |
+| `name` / `ref` | Street name / road reference number |
+| `distance` / `duration` | This segment's length (meters) / time (seconds) |
+| `geometry` | This segment's geometry (polyline) |
+| `intersections[].lanes` | Lane information at crossings (with `valid` flags) |
+
+## Generating navigation instructions
+
+<CodeGroup>
+```python Python
+import justrouting
+
+client = justrouting.Client("YOUR_API_KEY")
+route = client.routes.get(justrouting.RouteRequest(
+    origin=[103.708362, 1.357371],
+    destination=[103.984748, 1.352212],
+    steps=True,
+))
+
+DIRECTIONS = {
+    "left": "turn left", "slight left": "bear left", "right": "turn right",
+    "slight right": "bear right", "straight": "continue straight",
+    "sharp left": "turn sharp left", "sharp right": "turn sharp right",
+    "uturn": "make a U-turn",
+}
+
+for step in route.legs[0].steps:
+    m = step.maneuver
+    if m["type"] == "arrive":
+        print("You have arrived")
+    elif m["type"] == "depart":
+        print(f"Head out on {step.name}")
+    else:
+        action = DIRECTIONS.get(m.get("modifier", ""), m["type"])
+        road = f" onto {step.name}" if step.name else ""
+        print(f"{action}{road} · {step.distance:.0f} m")
+```
+
+```ts JavaScript
+import { Client } from '@justrouting/client';
+
+const client = new Client(process.env.JUSTROUTING_API_KEY);
+const route = await client.routes.get({
+  origin: [103.708362, 1.357371],
+  destination: [103.984748, 1.352212],
+  steps: true,
+});
+
+const DIRECTIONS: Record<string, string> = {
+  left: 'turn left', right: 'turn right', straight: 'continue straight',
+  'slight left': 'bear left', 'slight right': 'bear right', uturn: 'make a U-turn',
+};
+
+for (const step of route.legs[0].steps) {
+  const m = step.maneuver;
+  if (m.type === 'arrive') console.log('You have arrived');
+  else if (m.type === 'depart') console.log(`Head out on ${step.name}`);
+  else console.log(`${DIRECTIONS[m.modifier] ?? m.type} onto ${step.name}`);
+}
+```
+</CodeGroup>
+
+<Tip>
+  New `maneuver.type` values may be added over time — **treat unknown types as `turn`**, the `modifier` is always valid. This is OSRM's backward-compatibility contract.
+</Tip>
+
+## Related
+
+- [Directions API](/api-reference/directions)
+- [Draw a Route on a Map](/guides/draw-route-on-map)

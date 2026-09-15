@@ -1,0 +1,42 @@
+---
+title: "Coverage"
+description: "Which countries JustRouting covers, the cross-country constraint, and how map data updates work."
+---
+
+# Coverage
+
+## Covered countries
+
+Both Free and Hobby plans cover 11 Southeast Asian countries:
+
+| | | |
+| --- | --- | --- |
+| 🇧🇳 Brunei | 🇰🇭 Cambodia | 🇮🇩 Indonesia |
+| 🇱🇦 Laos | 🇲🇾 Malaysia | 🇲🇲 Myanmar |
+| 🇵🇭 Philippines | 🇸🇬 Singapore | 🇹🇭 Thailand |
+| 🇹🇱 Timor-Leste | 🇻🇳 Vietnam | |
+
+Each country uses **individually tuned routing profiles** (car / motorcycle) instead of a single uniform profile applied everywhere.
+
+## Cross-country constraint
+
+<Warning>
+  All coordinates in a single request (route / table / match / trip) **must be in the same country**. Cross-country directions, matrices, and VROOM problems are not supported yet.
+</Warning>
+
+Need cross-border routing or coverage beyond these countries? Email [hello@justrouting.tech](mailto:hello@justrouting.tech) — coverage expands based on demand.
+
+## Map data updates
+
+- Maps are updated **bi-weekly** (based on OpenStreetMap)
+- The latest version is listed in the Map Updates table on [justrouting.tech](https://justrouting.tech)
+- The `data_version` field in responses (when present) is the timestamp of the OSM data used for your route — handy for debugging "the map hasn't updated" issues:
+
+```json
+{ "code": "Ok", "data_version": "2026-09-12T15:23:31Z", "routes": [...] }
+```
+
+## Related
+
+- [Directions API](/api-reference/directions)
+- [Distance Matrix](/api-reference/distance-matrix)

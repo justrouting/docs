@@ -1,0 +1,757 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "JustRouting OSRM API",
+    "version": "v1",
+    "description": "OSRM-compatible routing services hosted by JustRouting: route, table, match, trip, and nearest. All requests require a Bearer API key. Coordinates use `lng,lat` order and must be within a single country (Southeast Asia).",
+    "contact": {
+      "email": "hello@justrouting.tech",
+      "name": "JustRouting",
+      "url": "https://justrouting.tech"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://api.justrouting.tech/osrm",
+      "description": "Production"
+    }
+  ],
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "tags": [
+    { "name": "route", "description": "Directions between coordinates" },
+    { "name": "table", "description": "N×N travel time/distance matrix" },
+    { "name": "match", "description": "Map matching for GPS traces" },
+    { "name": "trip", "description": "Traveling salesman optimization" },
+    { "name": "nearest", "description": "Snap a coordinate to the road network" }
+  ],
+  "paths": {
+    "/route/v1/{profile}/{coordinates}": {
+      "get": {
+        "tags": ["route"],
+        "summary": "Find the fastest route between coordinates in order",
+        "operationId": "getRoute",
+        "parameters": [
+          {
+            "name": "profile",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["driving", "motorcycle"] },
+            "description": "Vehicle profile. `driving` for cars, `motorcycle` for motorcycles."
+          },
+          {
+            "name": "coordinates",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Semicolon-separated `{lng},{lat}` pairs, up to 100, visited in order. All coordinates must be in the same country.",
+            "example": "103.708362,1.357371;103.984748,1.352212"
+          },
+          { "$ref": "#/components/parameters/Overview" },
+          { "$ref": "#/components/parameters/Steps" },
+          { "$ref": "#/components/parameters/Alternatives" },
+          { "$ref": "#/components/parameters/Geometries" },
+          { "$ref": "#/components/parameters/Annotations" },
+          { "$ref": "#/components/parameters/ContinueStraight" },
+          { "$ref": "#/components/parameters/Bearings" },
+          { "$ref": "#/components/parameters/Radiuses" },
+          { "$ref": "#/components/parameters/Hints" },
+          { "$ref": "#/components/parameters/Exclude" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Route found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RouteResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OsrmError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "headers": {
+              "Retry-After": {
+                "schema": { "type": "integer" },
+                "description": "Seconds to wait before retrying"
+              },
+              "X-RateLimit-Remaining": {
+                "schema": { "type": "integer" },
+                "description": "Requests remaining today"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RateLimitError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/table/v1/{profile}/{coordinates}": {
+      "get": {
+        "tags": ["table"],
+        "summary": "Compute durations/distances between all pairs of coordinates",
+        "operationId": "getTable",
+        "parameters": [
+          {
+            "name": "profile",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["driving", "motorcycle"] }
+          },
+          {
+            "name": "coordinates",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Semicolon-separated `{lng},{lat}` pairs, all in the same country."
+          },
+          { "$ref": "#/components/parameters/Sources" },
+          { "$ref": "#/components/parameters/Destinations" },
+          {
+            "name": "annotations",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["duration", "distance", "duration,distance"], "default": "duration" },
+            "description": "Which table(s) to return."
+          },
+          {
+            "name": "fallback_speed",
+            "in": "query",
+            "schema": { "type": "number", "exclusiveMinimum": 0 },
+            "description": "For unreachable pairs, estimate duration from crow-fly distance at this speed (km/h equivalent meters per second ratio)."
+          },
+          {
+            "name": "fallback_coordinate",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["input", "snapped"], "default": "input" }
+          },
+          {
+            "name": "scale_factor",
+            "in": "query",
+            "schema": { "type": "number", "exclusiveMinimum": 0 },
+            "description": "Scale all durations by this factor."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matrix computed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TableResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OsrmError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RateLimitError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/match/v1/{profile}/{coordinates}": {
+      "get": {
+        "tags": ["match"],
+        "summary": "Snap a GPS trace to the road network",
+        "operationId": "getMatch",
+        "parameters": [
+          {
+            "name": "profile",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["driving", "motorcycle"] }
+          },
+          {
+            "name": "coordinates",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Trace points `{lng},{lat};...` in time order."
+          },
+          {
+            "name": "timestamps",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "UNIX timestamps (seconds) for each point, monotonically increasing, one per coordinate."
+          },
+          {
+            "name": "radiuses",
+            "in": "query",
+            "schema": { "type": "string" },
+            "description": "GPS accuracy in meters per point (standard deviation). Use device-reported accuracy when available."
+          },
+          { "$ref": "#/components/parameters/Steps" },
+          { "$ref": "#/components/parameters/Geometries" },
+          { "$ref": "#/components/parameters/Overview" },
+          {
+            "name": "gaps",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["split", "ignore"], "default": "split" },
+            "description": "Whether large timestamp gaps split the trace into multiple matchings."
+          },
+          {
+            "name": "tidy",
+            "in": "query",
+            "schema": { "type": "boolean", "default": false },
+            "description": "Allow removing noisy points to improve matching quality."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trace matched",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/MatchResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OsrmError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RateLimitError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trip/v1/{profile}/{coordinates}": {
+      "get": {
+        "tags": ["trip"],
+        "summary": "Solve the traveling salesman problem for the given coordinates",
+        "operationId": "getTrip",
+        "parameters": [
+          {
+            "name": "profile",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["driving", "motorcycle"] }
+          },
+          {
+            "name": "coordinates",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "roundtrip",
+            "in": "query",
+            "schema": { "type": "boolean", "default": true }
+          },
+          {
+            "name": "source",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["any", "first"], "default": "any" }
+          },
+          {
+            "name": "destination",
+            "in": "query",
+            "schema": { "type": "string", "enum": ["any", "last"], "default": "any" }
+          },
+          { "$ref": "#/components/parameters/Steps" },
+          { "$ref": "#/components/parameters/Geometries" },
+          { "$ref": "#/components/parameters/Overview" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Trip found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TripResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OsrmError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RateLimitError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/nearest/v1/{profile}/{coordinates}": {
+      "get": {
+        "tags": ["nearest"],
+        "summary": "Snap a single coordinate to the nearest routable segments",
+        "operationId": "getNearest",
+        "parameters": [
+          {
+            "name": "profile",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string", "enum": ["driving", "motorcycle"] }
+          },
+          {
+            "name": "coordinates",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "A single `{lng},{lat}` pair."
+          },
+          {
+            "name": "number",
+            "in": "query",
+            "schema": { "type": "integer", "minimum": 1, "default": 1 },
+            "description": "Number of nearest segments to return."
+          },
+          { "$ref": "#/components/parameters/Bearings" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Snapped segments",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/NearestResponse" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/OsrmError" }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AuthError" }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/RateLimitError" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "API key created in the JustRouting dashboard."
+      }
+    },
+    "parameters": {
+      "Overview": {
+        "name": "overview",
+        "in": "query",
+        "schema": { "type": "string", "enum": ["full", "simplified", "false"], "default": "simplified" },
+        "description": "How much route geometry to return."
+      },
+      "Steps": {
+        "name": "steps",
+        "in": "query",
+        "schema": { "type": "boolean", "default": false },
+        "description": "Return turn-by-turn steps."
+      },
+      "Alternatives": {
+        "name": "alternatives",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "`true` for one alternative, or a number for up to that many (not guaranteed)."
+      },
+      "Geometries": {
+        "name": "geometries",
+        "in": "query",
+        "schema": { "type": "string", "enum": ["polyline", "polyline6", "geojson"], "default": "polyline" },
+        "description": "Geometry encoding of the response."
+      },
+      "Annotations": {
+        "name": "annotations",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "Per-coordinate metadata: `true`, or a comma list of `distance`, `duration`, `speed`, `weight`, `nodes`, `datasources`."
+      },
+      "ContinueStraight": {
+        "name": "continue_straight",
+        "in": "query",
+        "schema": { "type": "string", "enum": ["default", "true", "false"], "default": "default" },
+        "description": "Force straight continuation at waypoints, constraining U-turns."
+      },
+      "Bearings": {
+        "name": "bearings",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "`{bearing},{range};...` per coordinate, e.g. `0,20` = north ±20°."
+      },
+      "Radiuses": {
+        "name": "radiuses",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "Snapping radius in meters per coordinate, or `unlimited`."
+      },
+      "Hints": {
+        "name": "hints",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "Base64 hints from a previous response to speed up snapping."
+      },
+      "Exclude": {
+        "name": "exclude",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "Road classes to avoid, e.g. `motorway`."
+      },
+      "Sources": {
+        "name": "sources",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "Source indices `{i};{j};...` or `all` (default)."
+      },
+      "Destinations": {
+        "name": "destinations",
+        "in": "query",
+        "schema": { "type": "string" },
+        "description": "Destination indices `{i};{j};...` or `all` (default)."
+      }
+    },
+    "schemas": {
+      "Waypoint": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "description": "Street name the coordinate snapped to." },
+          "location": {
+            "type": "array",
+            "items": { "type": "number" },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "Snapped position as `[lng, lat]`."
+          },
+          "distance": { "type": "number", "description": "Snapping offset in meters." },
+          "hint": { "type": "string", "description": "Opaque segment identifier, reusable as the `hints` parameter." },
+          "nodes": {
+            "type": "array",
+            "items": { "type": "integer" },
+            "description": "OSM node ids of the segment."
+          }
+        }
+      },
+      "StepManeuver": {
+        "type": "object",
+        "properties": {
+          "location": { "type": "array", "items": { "type": "number" }, "description": "[lng, lat]" },
+          "bearing_before": { "type": "integer" },
+          "bearing_after": { "type": "integer" },
+          "type": { "type": "string", "description": "turn, depart, arrive, merge, on ramp, off ramp, roundabout, fork, continue, ..." },
+          "modifier": { "type": "string", "enum": ["uturn", "sharp right", "right", "slight right", "straight", "slight left", "left", "sharp left"] }
+        }
+      },
+      "RouteStep": {
+        "type": "object",
+        "properties": {
+          "distance": { "type": "number", "description": "Meters." },
+          "duration": { "type": "number", "description": "Seconds." },
+          "geometry": { "type": "string", "description": "Polyline geometry." },
+          "name": { "type": "string" },
+          "ref": { "type": "string" },
+          "mode": { "type": "string" },
+          "maneuver": { "$ref": "#/components/schemas/StepManeuver" }
+        }
+      },
+      "RouteLeg": {
+        "type": "object",
+        "properties": {
+          "distance": { "type": "number", "description": "Meters." },
+          "duration": { "type": "number", "description": "Seconds." },
+          "weight": { "type": "number" },
+          "summary": { "type": "string" },
+          "steps": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RouteStep" }
+          },
+          "annotation": { "$ref": "#/components/schemas/Annotation" }
+        }
+      },
+      "Annotation": {
+        "type": "object",
+        "properties": {
+          "distance": { "type": "array", "items": { "type": "number" } },
+          "duration": { "type": "array", "items": { "type": "number" } },
+          "speed": { "type": "array", "items": { "type": "number" } },
+          "nodes": { "type": "array", "items": { "type": "integer" } }
+        }
+      },
+      "Route": {
+        "type": "object",
+        "properties": {
+          "distance": { "type": "number", "description": "Total distance in meters." },
+          "duration": { "type": "number", "description": "Total duration in seconds." },
+          "weight": { "type": "number" },
+          "weight_name": { "type": "string", "example": "routability" },
+          "geometry": {
+            "oneOf": [
+              { "type": "string", "description": "Encoded polyline (precision 5 or 6)." },
+              {
+                "type": "object",
+                "description": "GeoJSON LineString when geometries=geojson.",
+                "required": ["type", "coordinates"],
+                "properties": {
+                  "type": { "type": "string", "enum": ["LineString"] },
+                  "coordinates": {
+                    "type": "array",
+                    "items": { "type": "array", "items": { "type": "number" } }
+                  }
+                }
+              }
+            ]
+          },
+          "legs": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/RouteLeg" }
+          }
+        }
+      },
+      "RouteResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "enum": ["Ok"] },
+          "data_version": { "type": "string", "description": "Timestamp of the OSM data used." },
+          "routes": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Route" }
+          },
+          "waypoints": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Waypoint" }
+          }
+        }
+      },
+      "TableResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "enum": ["Ok"] },
+          "durations": {
+            "type": "array",
+            "description": "Row-major matrix of durations in seconds; null entries mean unreachable.",
+            "items": {
+              "type": "array",
+              "items": { "type": ["number", "null"] }
+            }
+          },
+          "distances": {
+            "type": "array",
+            "description": "Row-major matrix of distances in meters.",
+            "items": {
+              "type": "array",
+              "items": { "type": ["number", "null"] }
+            }
+          },
+          "sources": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Waypoint" }
+          },
+          "destinations": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Waypoint" }
+          },
+          "fallback_speed_cells": {
+            "type": "array",
+            "items": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 }
+          }
+        }
+      },
+      "Tracepoint": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Waypoint" },
+          {
+            "type": "object",
+            "properties": {
+              "matchings_index": { "type": "integer" },
+              "waypoint_index": { "type": "integer" },
+              "alternatives_count": { "type": "integer" }
+            }
+          }
+        ]
+      },
+      "MatchResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "enum": ["Ok"] },
+          "tracepoints": {
+            "type": "array",
+            "description": "One entry per input point; null for dropped outliers.",
+            "items": {
+              "oneOf": [
+                { "$ref": "#/components/schemas/Tracepoint" },
+                { "type": "null" }
+              ]
+            }
+          },
+          "matchings": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                { "$ref": "#/components/schemas/Route" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "confidence": { "type": "number", "minimum": 0, "maximum": 1 }
+                  }
+                }
+              ]
+            }
+          }
+        }
+      },
+      "TripResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "enum": ["Ok"] },
+          "waypoints": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                { "$ref": "#/components/schemas/Waypoint" },
+                {
+                  "type": "object",
+                  "properties": {
+                    "trips_index": { "type": "integer" },
+                    "waypoint_index": { "type": "integer" }
+                  }
+                }
+              ]
+            }
+          },
+          "trips": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Route" }
+          }
+        }
+      },
+      "NearestResponse": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "enum": ["Ok"] },
+          "waypoints": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Waypoint" }
+          }
+        }
+      },
+      "OsrmError": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "InvalidUrl",
+              "InvalidService",
+              "InvalidVersion",
+              "InvalidOptions",
+              "InvalidQuery",
+              "InvalidValue",
+              "NoSegment",
+              "NoRoute",
+              "NoTable",
+              "NoMatch",
+              "NoTrips",
+              "TooBig",
+              "DisabledDataset"
+            ]
+          },
+          "message": { "type": "string" }
+        }
+      },
+      "AuthError": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "enum": ["missing_auth", "invalid_api_key"] },
+          "message": { "type": "string" }
+        }
+      },
+      "RateLimitError": {
+        "type": "object",
+        "properties": {
+          "code": { "type": "string", "enum": ["rate_limited"] },
+          "message": { "type": "string" }
+        }
+      }
+    }
+  }
+}

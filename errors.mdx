@@ -1,0 +1,66 @@
+---
+title: "Errors"
+description: "Error format, HTTP status codes, and the complete error code reference for JustRouting APIs."
+---
+
+# Errors
+
+## Error response format
+
+Authentication and quota errors:
+
+```json
+{ "code": "invalid_api_key", "message": "invalid or revoked API key" }
+```
+
+OSRM endpoints (`/osrm/*`) follow the OSRM convention: HTTP `400` with a `code` and an optional `message` in the body:
+
+```json
+{ "code": "NoRoute", "message": "Impossible route between points" }
+```
+
+The VROOM endpoint (`/vroom`) uses `code` `0` (success), `1` (internal error), `2` (input error), or `3` (routing error), with details in the `error` field.
+
+## Authentication errors (HTTP 401)
+
+| code | Meaning | What to do |
+| --- | --- | --- |
+| `missing_auth` | The `Authorization` header is missing | Send `Authorization: Bearer <key>` with the request |
+| `invalid_api_key` | The key is invalid or revoked | Check the key's status in the [Dashboard](https://justrouting.tech/dashboard) |
+
+## Quota errors (HTTP 429)
+
+| code | Meaning | What to do |
+| --- | --- | --- |
+| `rate_limited` | Daily quota or rate limit exceeded | See [Rate Limits](/rate-limits); retry after `Retry-After` |
+
+## OSRM endpoint errors (HTTP 400)
+
+| code | Meaning |
+| --- | --- |
+| `InvalidUrl` | The URL format is invalid |
+| `InvalidService` | Invalid service name (must be route / table / match / trip / nearest) |
+| `InvalidVersion` | Invalid version (only `v1` is supported) |
+| `InvalidOptions` | Invalid request options |
+| `InvalidQuery` | Syntactically malformed query string |
+| `InvalidValue` | Invalid parameter value |
+| `NoSegment` | A coordinate could not be snapped to a road segment (too far from the road network) |
+| `NoRoute` | No route between the given points |
+| `NoTable` | No routable cell in the matrix (use `fallback_speed` as a fallback) |
+| `NoMatch` | The trace could not be matched to roads |
+| `NoTrips` | Input coordinates are not connected — the TSP cannot be solved |
+| `TooBig` | The request exceeds service limits (e.g. too many coordinates) |
+
+<Info>
+  On success, OSRM endpoints return HTTP `200` with `code: "Ok"`. Business errors live in the `code` field — don't rely on the HTTP status code alone to distinguish them.
+</Info>
+
+## FAQ
+
+<Accordion title="Why does a coordinate in the sea or inside a building still return 200?">
+OSRM **snaps** coordinates to the nearest drivable road. `waypoints[].distance` in the response is the offset in meters from your input coordinate to the snapped point — a large value means the input coordinate is low quality.
+</Accordion>
+
+<Accordion title="Why do cross-country requests fail?">
+All coordinates in a single request must be in the same country. See [Coverage](/coverage) for details, or contact [hello@justrouting.tech](mailto:hello@justrouting.tech) for cross-border needs.
+</Accordion>

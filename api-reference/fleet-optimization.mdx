@@ -1,0 +1,154 @@
+---
+title: "Fleet Optimization API"
+description: "Multi-vehicle route optimization powered by VROOM — assign jobs, sequence stops, respect time windows and capacity."
+---
+
+# Fleet Optimization API
+
+Multi-vehicle route optimization (VRP) powered by [VROOM](https://github.com/VROOM-Project/vroom): you send JSON describing vehicles and tasks, you get back the optimal assignment and visit order. Distances come from the real OSRM road network — not straight lines.
+
+<Tip>
+  **Try it first?** Switch the [Live Demo](https://justrouting.tech) to the Fleet Optimization tab: two vehicles, six tasks, one API call to assign and sequence everything.
+</Tip>
+
+## Endpoint
+
+```
+POST https://api.justrouting.tech/vroom
+Content-Type: application/json
+```
+
+## Quickstart
+
+<CodeGroup>
+```bash curl
+curl -X POST "https://api.justrouting.tech/vroom" \
+  -H "Authorization: Bearer $JUSTROUTING_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "vehicles": [
+      { "id": 1, "profile": "car", "start": [103.79234106, 1.32463108], "end": [103.79234106, 1.32463108] },
+      { "id": 2, "profile": "car", "start": [103.82324228, 1.32408622], "end": [103.82324228, 1.32408622] }
+    ],
+    "jobs": [
+      { "id": 1, "location": [103.79751693, 1.31035001] },
+      { "id": 2, "location": [103.78432387, 1.31490148] },
+      { "id": 3, "location": [103.79763397, 1.31980519] }
+    ]
+  }'
+```
+
+```python Python
+import justrouting
+
+client = justrouting.Client("YOUR_API_KEY")
+
+solution = client.vroom.solve(justrouting.VroomRequest(
+    vehicles=[
+        justrouting.Vehicle(id=1, profile="car",
+            start=[103.79234106, 1.32463108],
+            end=[103.79234106, 1.32463108]),
+        justrouting.Vehicle(id=2, profile="car",
+            start=[103.82324228, 1.32408622],
+            end=[103.82324228, 1.32408622]),
+    ],
+    jobs=[
+        justrouting.Job(id=1, location=[103.79751693, 1.31035001]),
+        justrouting.Job(id=2, location=[103.78432387, 1.31490148]),
+        justrouting.Job(id=3, location=[103.79763397, 1.31980519]),
+    ],
+))
+
+for route in solution.routes:
+    print(f"Vehicle {route.vehicle}:", [s.id for s in route.steps if s.type == "job"])
+```
+</CodeGroup>
+
+## Input: vehicles and tasks
+
+### Vehicle
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | int | Required, vehicle number |
+| `profile` | string | `car` (default) or `motorcycle` |
+| `start` / `end` | `[lng, lat]` | Start/end depot; omit `end` to stop at the last task; same values = round trip |
+| `capacity` | int[] | Multi-dimensional capacity (e.g. `[weight, volume]`) |
+| `skills` | int[] | Vehicle skills — a job's `skills` must be a subset |
+| `time_window` | `[start, end]` | Working hours |
+| `breaks` | array | Rest periods |
+| `speed_factor` | float | Scales all travel times for this vehicle, range `(0, 5]`, two decimals precision |
+| `costs` | object | `fixed` / `per_hour` / `per_km` cost weights |
+
+### Job
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `id` | int | Required, task number (unique among jobs/shipments) |
+| `location` | `[lng, lat]` | Required, task position |
+| `setup` / `service` | int | Setup/service durations in seconds |
+| `delivery` / `pickup` | int[] | Amounts to unload/load (paired with vehicle `capacity`) |
+| `skills` | int[] | Skills required to serve this task |
+| `priority` | int | `0-100`; higher-priority tasks are preferred when not everything fits |
+| `time_windows` | `[[start, end], ...]` | Valid slots for service start |
+
+There are also `shipments` (pickup-then-delivery pairs) and more advanced fields — the full schema is in the **VROOM (OpenAPI)** section of the API Reference (auto-generated three-panel pages).
+
+<Info>
+  Time windows accept **relative seconds** or **absolute UNIX timestamps** — just be consistent within one request.
+</Info>
+
+## Getting route geometry back
+
+Add `"geometry": true` to the request body and every route carries a polyline:
+
+```json
+{
+  "code": 0,
+  "summary": { "cost": 12345, "routes": 2, "unassigned": 0, "duration": 4200 },
+  "routes": [
+    {
+      "vehicle": 1,
+      "steps": [
+        { "type": "start", "location": [103.79, 1.32], "arrival": 0 },
+        { "type": "job", "id": 3, "arrival": 900, "service": 300, "location": [103.8, 1.32] },
+        { "type": "end", "arrival": 1800 }
+      ],
+      "geometry": "_bhGmo~wRPMNKNIX...",
+      "distance": 24500,
+      "duration": 1800
+    }
+  ],
+  "unassigned": []
+}
+```
+
+### Response essentials
+
+| Field | Description |
+| --- | --- |
+| `code` | `0` success; `2` input error; `3` routing error — details in the `error` field |
+| `summary` | Total cost, route count, unassigned count, total duration/distance |
+| `routes[].steps[]` | Visit order: `start` → `job`/`pickup`/`delivery`/`break` → `end`, each with `arrival` |
+| `unassigned` | Tasks that could not be served and why (capacity/time-window conflicts, etc.) |
+
+## Time Windows
+
+![How time windows interact with timing fields](/images/time_window_illustration.svg)
+
+A task's `time_windows` constrain when its service **starts**; early arrivals wait. Two ways to express them:
+
+- Relative: `[0, 14400]` = within 4 hours of the planning horizon start
+- Absolute: real UNIX timestamps — then `arrival` values in the output are timestamps too
+
+## Size limits
+
+| Plan | Vehicles / tasks |
+| --- | --- |
+| Free | 10 / 100 |
+| Hobby | 50 / 1,000 |
+
+## Related
+
+- [Distance Matrix](/api-reference/distance-matrix) — compute matrices for your own solvers
+- [VROOM API docs](https://github.com/VROOM-Project/vroom/blob/master/docs/API.md) — the upstream full input/output schema (our hosted version is compatible)

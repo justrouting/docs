@@ -1,0 +1,65 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "mint",
+  "name": "JustRouting Docs",
+  "favicon": "/images/logo.png",
+  "logo": {
+    "light": "/images/logo-wordmark.png",
+    "dark": "/images/logo-wordmark.png"
+  },
+  "colors": {
+    "primary": "#4f46e5",
+    "light": "#6366f1",
+    "dark": "#818cf8"
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting Started",
+        "icon": "rocket",
+        "pages": [
+          "index",
+          "quickstart",
+          "authentication",
+          "rate-limits",
+          "errors",
+          "coverage"
+        ]
+      },
+      {
+        "group": "API Reference",
+        "icon": "code",
+        "pages": [
+          "api-reference/directions",
+          "api-reference/distance-matrix",
+          "api-reference/fleet-optimization",
+          "api-reference/map-matching",
+          "api-reference/trip",
+          "api-reference/nearest",
+          {
+            "group": "OSRM (OpenAPI)",
+            "openapi": "openapi/osrm.json"
+          },
+          {
+            "group": "VROOM (OpenAPI)",
+            "openapi": "openapi/vroom.json"
+          }
+        ]
+      },
+      {
+        "group": "Guides",
+        "icon": "book-open",
+        "pages": [
+          "guides/draw-route-on-map",
+          "guides/turn-by-turn",
+          "guides/sdks"
+        ]
+      }
+    ]
+  },
+  "footerSocials": {
+    "github": "https://github.com/justrouting",
+    "website": "https://justrouting.tech",
+    "mail": "hello@justrouting.tech"
+  }
+}

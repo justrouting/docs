@@ -1,0 +1,207 @@
+---
+title: "Directions API"
+description: "Get road-following routes between coordinates — distance, duration, geometry, and turn-by-turn steps."
+---
+
+# Directions API
+
+Returns the real road route between two points (or ordered waypoints): distance (meters), estimated duration (seconds), route geometry (polyline or GeoJSON), and optional turn-by-turn steps.
+
+<Tip>
+  **Want to try it first?** Open the [Live Demo](https://justrouting.tech) and drag the A/B markers on the map.
+</Tip>
+
+## Endpoint
+
+```
+GET https://api.justrouting.tech/osrm/route/v1/{profile}/{coordinates}
+```
+
+| URL parameter | Description |
+| --- | --- |
+| `profile` | `driving` (car) or `motorcycle` |
+| `coordinates` | `{lng},{lat};{lng},{lat}[;...]`, visited in order, up to 100 |
+
+## Quickstart
+
+<CodeGroup>
+```bash curl
+curl "https://api.justrouting.tech/osrm/route/v1/driving/103.708362,1.357371;103.984748,1.352212?overview=full&steps=true" \
+  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+```
+
+```python Python
+import justrouting
+
+client = justrouting.Client("YOUR_API_KEY")
+
+route = client.routes.get(justrouting.RouteRequest(
+    origin=[103.708362, 1.357371],
+    destination=[103.984748, 1.352212],
+    steps=True,
+))
+
+print(f"{route.distance / 1000:.1f} km, {route.duration / 60:.0f} min")
+```
+
+```ts JavaScript
+import { Client } from '@justrouting/client';
+
+const client = new Client(process.env.JUSTROUTING_API_KEY);
+
+const route = await client.routes.get({
+  origin: [103.708362, 1.357371],
+  destination: [103.984748, 1.352212],
+  steps: true,
+});
+
+console.log(`${(route.distance / 1000).toFixed(1)} km, ${Math.round(route.duration / 60)} min`);
+```
+
+```go Go
+route, err := client.Routes.Get(ctx, &justrouting.RouteRequest{
+    Origin:      []float64{103.708362, 1.357371},
+    Destination: []float64{103.984748, 1.352212},
+    Steps:       true,
+})
+```
+</CodeGroup>
+
+## Request Parameters
+
+### General options
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `overview` | string | `simplified` | `full` (full geometry) / `simplified` (display-precision geometry) / `false` (no geometry) |
+| `steps` | bool | `false` | Return per-leg turn instructions (see [Turn-by-Turn](/guides/turn-by-turn)) |
+| `alternatives` | bool/int | `false` | Alternative routes; `alternatives=2` requests up to 2 (not guaranteed) |
+| `geometries` | string | `polyline` | `polyline` / `polyline6` / `geojson` |
+| `annotations` | string | `false` | Per-coordinate metadata: `distance`, `duration`, `speed`, and more |
+| `continue_straight` | string | `default` | Force straight continuation at waypoints |
+
+### Snapping control
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `bearings` | string | Restrict snapping by bearing, format `{bearing},{range};...` |
+| `radiuses` | string | Restrict snapping by radius in meters, `unlimited` for no limit |
+| `hints` | string | Reuse `hint` values from a previous response to speed up repeated requests significantly |
+| `exclude` | string | Road classes to avoid, e.g. `exclude=motorway` |
+
+### Examples
+
+<Tabs>
+  <Tab title="Waypoints (multi-stop)">
+    ```bash
+    # A → B → C, in order
+    curl "https://api.justrouting.tech/osrm/route/v1/driving/103.708362,1.357371;103.8514,1.2897;103.984748,1.352212" \
+      -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+    ```
+  </Tab>
+  <Tab title="Avoid motorways">
+    ```bash
+    curl "https://api.justrouting.tech/osrm/route/v1/driving/103.708362,1.357371;103.984748,1.352212?exclude=motorway" \
+      -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+    ```
+  </Tab>
+  <Tab title="GeoJSON geometry">
+    ```bash
+    curl "https://api.justrouting.tech/osrm/route/v1/driving/103.708362,1.357371;103.984748,1.352212?geometries=geojson&overview=full" \
+      -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+## Response
+
+```json response-example.json
+{
+  "code": "Ok",
+  "routes": [
+    {
+      "legs": [
+        {
+          "steps": [],
+          "weight": 2222.6,
+          "summary": "",
+          "duration": 2225.6,
+          "distance": 36911.2
+        }
+      ],
+      "weight_name": "routability",
+      "geometry": "_bhGmo~wRPMNKNIXQvHsErAw@...",
+      "distance": 36911.2,
+      "duration": 2225.6
+    }
+  ],
+  "waypoints": [
+    { "name": "", "location": [103.708362, 1.357371] },
+    { "name": "", "location": [103.984748, 1.352212] }
+  ]
+}
+```
+
+### Response fields
+
+| Field | Type | Unit | Description |
+| --- | --- | --- | --- |
+| `code` | string | — | `Ok` on success; see [Errors](/errors) otherwise |
+| `routes` | array | — | Alternative routes, best first |
+| `routes[].distance` | float | **meters** | Total route distance |
+| `routes[].duration` | float | **seconds** | Estimated travel time |
+| `routes[].weight` | float | — | Routing weight (engine-internal; usually equals duration) |
+| `routes[].geometry` | string | — | Encoded polyline (precision 5) that decodes to `[lat, lng]` pairs; with `geometries=geojson` this is a GeoJSON LineString |
+| `routes[].legs` | array | — | One entry per waypoint pair; contains steps when `steps=true` |
+| `routes[].legs[].steps[]` | array | — | Turn instructions with `maneuver` (direction), `name` (street name), `distance`, `duration` |
+| `waypoints[]` | array | — | Each input coordinate snapped to the road network; `distance` is the snap offset in meters |
+
+<Accordion title="Decoding geometry">
+Precision-5 polyline — decodable with any `polyline` library:
+
+```python
+import polyline
+coords = polyline.decode(route["geometry"])  # -> [(lat, lng), ...]
+```
+
+```js
+import polyline from '@mapbox/polyline';
+const coords = polyline.decode(route.geometry); // -> [[lat, lng], ...]
+```
+
+Note the decoded pairs are `[lat, lng]` — the opposite order of the `lng,lat` request input.
+</Accordion>
+
+<Info>
+  Coordinates use `lng,lat` order, and all coordinates in one request **must be in the same country**. See [Coverage](/coverage).
+</Info>
+
+## Errors
+
+| HTTP | code | Meaning |
+| --- | --- | --- |
+| 401 | `missing_auth` / `invalid_api_key` | Authentication failed, see [Authentication](/authentication) |
+| 400 | `NoRoute` | No route between the points |
+| 400 | `NoSegment` | A coordinate could not be snapped to a road |
+| 400 | `TooBig` | More than 100 coordinates |
+| 429 | `rate_limited` | Quota exceeded, see [Rate Limits](/rate-limits) |
+
+## Recipes
+
+- **Draw a line**: `geometries=geojson` + [Draw a Route on a Map](/guides/draw-route-on-map)
+- **Navigation**: `steps=true` + [Turn-by-Turn Navigation](/guides/turn-by-turn)
+- **Multi-stop ordering**: route 3+ waypoints in order, or let [Fleet Optimization](/api-reference/fleet-optimization) solve the optimal sequence
+
+## Related
+
+<CardGroup cols={3}>
+  <Card title="Distance Matrix" icon="table" href="/api-reference/distance-matrix">
+    Travel time and distance between many points in one call
+  </Card>
+  <Card title="Fleet Optimization" icon="truck" href="/api-reference/fleet-optimization">
+    VROOM vehicle routing with time windows and capacity
+  </Card>
+  <Card title="Map Matching" icon="crosshair" href="/api-reference/map-matching">
+    Snap GPS traces to real roads
+  </Card>
+</CardGroup>

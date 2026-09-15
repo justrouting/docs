@@ -1,0 +1,83 @@
+---
+title: "Trip API"
+description: "Solve the traveling salesman problem — find the fastest visiting order for many stops."
+---
+
+# Trip API
+
+Traveling salesman problem (TSP): given several stops, return an approximately optimal visiting order. Great for delivery route previews and multi-stop visit planning. Powered by the OSRM Trip service.
+
+<Note>
+  Need richer constraints (multiple vehicles, time windows, capacity)? Use [Fleet Optimization](/api-reference/fleet-optimization) instead.
+</Note>
+
+## Endpoint
+
+```
+GET https://api.justrouting.tech/osrm/trip/v1/{profile}/{coordinates}
+```
+
+| URL parameter | Description |
+| --- | --- |
+| `profile` | `driving` or `motorcycle` |
+| `coordinates` | Stops `{lng},{lat};{lng},{lat};...` (within one country) |
+
+## Request Parameters
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `roundtrip` | bool | `true` | Return to the start (closed loop) |
+| `source` | string | `any` | Start: `any` or `first` (the first coordinate) |
+| `destination` | string | `any` | End: `any` or `last` (the last coordinate) |
+| `steps` | bool | `false` | Return turn instructions |
+| `geometries` | string | `polyline` | `polyline` / `geojson` |
+| `overview` | string | `simplified` | `full` / `simplified` / `false` |
+
+<Info>
+  TSP is NP-hard, so the result is **approximately optimal** (brute force guarantees the optimum below 10 points). All input coordinates must be connected for the trip to be solvable.
+</Info>
+
+## Quickstart
+
+```bash
+# 5 stops in Singapore, no round trip, start from the first point
+curl "https://api.justrouting.tech/osrm/trip/v1/driving/103.708362,1.357371;103.8514,1.2897;103.82324228,1.32408622;103.78432387,1.31490148;103.984748,1.352212?roundtrip=false&source=first&geometries=geojson" \
+  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+```
+
+## Response
+
+```json response-example.json
+{
+  "code": "Ok",
+  "waypoints": [
+    { "trips_index": 0, "waypoint_index": 0, "location": [103.708362, 1.357371] },
+    { "trips_index": 0, "waypoint_index": 1, "location": [103.82324228, 1.32408622] },
+    { "trips_index": 0, "waypoint_index": 2, "location": [103.8514, 1.2897] }
+  ],
+  "trips": [
+    {
+      "geometry": "...",
+      "distance": 41230.0,
+      "duration": 3300.0,
+      "legs": [...]
+    }
+  ]
+}
+```
+
+### Response fields
+
+| Field | Description |
+| --- | --- |
+| `waypoints[]` | Each input point ordered by the **optimal visit sequence**; `waypoint_index` is its position in the trip |
+| `trips[]` | The trip(s) — usually one; `geometry` / `distance` / `duration` describe the full visit route |
+
+<Warning>
+  The visiting order comes from the `waypoints` array order — not the order you sent in the request.
+</Warning>
+
+## Related
+
+- [Fleet Optimization](/api-reference/fleet-optimization) — multi-vehicle VRP
+- [Directions API](/api-reference/directions)

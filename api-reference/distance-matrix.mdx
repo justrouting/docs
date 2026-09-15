@@ -1,0 +1,136 @@
+---
+title: "Distance Matrix API"
+description: "Compute travel times and distances between many points in a single request."
+---
+
+# Distance Matrix API
+
+Returns an N×N matrix of driving times (seconds) and distances (meters) in a single request, powered by the OSRM Table service. Ideal for nearest-store lookup, dispatch, and batch route planning.
+
+<Tip>
+  **Try it first?** Switch the [Live Demo](https://justrouting.tech) to the Distance Matrix tab and drag the markers around.
+</Tip>
+
+## Endpoint
+
+```
+GET https://api.justrouting.tech/osrm/table/v1/{profile}/{coordinates}
+```
+
+| URL parameter | Description |
+| --- | --- |
+| `profile` | `driving` or `motorcycle` |
+| `coordinates` | `{lng},{lat};{lng},{lat}[;...]` |
+
+## Request Parameters
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `sources` | string | `all` | Source indices, e.g. `sources=0` or `sources=0;1` |
+| `destinations` | string | `all` | Destination indices; combine with `sources` for cheaper asymmetric sub-matrices |
+| `annotations` | string | `duration` | `duration` / `distance` / `duration,distance` |
+| `fallback_speed` | float | — | When no route exists, estimate duration from crow-fly distance at this speed |
+| `fallback_coordinate` | string | `input` | For estimates, use `input` (original) or `snapped` coordinates |
+| `scale_factor` | float | — | Scale all durations, e.g. `1.2` = everything +20% |
+
+## Quickstart
+
+<CodeGroup>
+```bash 3×3 duration matrix
+curl "https://api.justrouting.tech/osrm/table/v1/driving/103.708362,1.357371;103.8514,1.2897;103.984748,1.352212" \
+  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+```
+
+```bash Only the depot row
+# sources=0: returns only row 0 — two-thirds cheaper
+curl "https://api.justrouting.tech/osrm/table/v1/driving/103.708362,1.357371;103.8514,1.2897;103.984748,1.352212?sources=0&annotations=duration,distance" \
+  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+```
+
+```python Python
+import justrouting
+
+client = justrouting.Client("YOUR_API_KEY")
+
+m = client.matrix.get(justrouting.MatrixRequest(
+    coordinates=[[103.708362, 1.357371], [103.8514, 1.2897], [103.984748, 1.352212]],
+    sources=[0],                    # only the depot row
+    destinations=[1, 2],
+    annotations=["duration", "distance"],
+))
+
+print(f"depot → B: {m.duration(0, 1) / 60:.0f} min")   # may be None (unreachable)
+print(f"depot → C: {m.distance(0, 1) / 1000:.1f} km")
+```
+
+```ts JavaScript
+import { Client } from '@justrouting/client';
+
+const client = new Client(process.env.JUSTROUTING_API_KEY);
+
+const m = await client.matrix.get({
+  coordinates: [[103.708362, 1.357371], [103.8514, 1.2897], [103.984748, 1.352212]],
+  sources: [0],
+  destinations: [1, 2],
+});
+
+const minutes = m.duration(0, 1); // number | null
+```
+</CodeGroup>
+
+## Response
+
+```json response-example.json
+{
+  "code": "Ok",
+  "durations": [
+    [0, 192.6, 382.8],
+    [199, 0, 283.9],
+    [344.7, 222.3, 0]
+  ],
+  "distances": [
+    [0, 1886.89, 3791.3],
+    [1824, 0, 2838.09],
+    [3275.36, 2361.73, 0]
+  ],
+  "sources": [
+    { "name": "", "location": [103.708362, 1.357371] }
+  ],
+  "destinations": [
+    { "name": "", "location": [103.8514, 1.2897] },
+    { "name": "", "location": [103.984748, 1.352212] }
+  ]
+}
+```
+
+### Response fields
+
+| Field | Type | Unit | Description |
+| --- | --- | --- | --- |
+| `durations` | array[][] | **seconds** | Row-major matrix; `durations[i][j]` is source i → destination j |
+| `distances` | array[][] | **meters** | Same layout (returned with `annotations=distance`) |
+| `sources` / `destinations` | array | — | Snapped source/destination coordinates |
+| `fallback_speed_cells` | array | — | `[i, j]` cells estimated via `fallback_speed` |
+
+<Warning>
+  A `null` cell means **no route exists** between that pair — it is deliberately distinct from a real 0. The official SDKs preserve `null` instead of coercing it to 0.
+</Warning>
+
+## Size limits
+
+| Plan | Max matrix |
+| --- | --- |
+| Free | 100 × 100 |
+| Hobby | 500 × 500 |
+
+Exceeding the limit returns `400 TooBig`. For large matrices: trim to the sub-matrix you need with `sources`/`destinations`, compute in batches, and cache the results — matrices are stable and rarely need real-time recomputation.
+
+## Recipes
+
+- **Nearest store**: `sources=0` (the user) against `destinations=all`, pick the column with the smallest duration
+- **Dispatch planning**: feed the matrix into [Fleet Optimization](/api-reference/fleet-optimization) or your own VRP solver
+
+## Related
+
+- [Directions API](/api-reference/directions)
+- [Fleet Optimization](/api-reference/fleet-optimization)
