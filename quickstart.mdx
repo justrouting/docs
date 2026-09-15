@@ -23,7 +23,7 @@ Try the route from Marina Bay to Changi Airport in Singapore (replace the key wi
 
 <CodeGroup>
 ```bash curl
-curl "https://api.justrouting.tech/osrm/route/v1/driving/103.708362,1.357371;103.984748,1.352212?overview=full&steps=true" \
+curl "https://api.justrouting.tech/route/v1/driving/103.708362,1.357371;103.984748,1.352212?overview=full&steps=true" \
   -H "Authorization: Bearer $JUSTROUTING_API_KEY"
 ```
 
@@ -95,7 +95,7 @@ Request with `geometries=geojson` and `routes[0].geometry` is a ready-to-use Geo
   <Tab title="Leaflet">
     ```js
     const res = await fetch(
-      "https://api.justrouting.tech/osrm/route/v1/driving/" +
+      "https://api.justrouting.tech/route/v1/driving/" +
       "103.708362,1.357371;103.984748,1.352212?geometries=geojson&overview=full",
       { headers: { Authorization: "Bearer " + API_KEY } }
     );

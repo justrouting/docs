@@ -21,7 +21,7 @@ Drawing a route takes three steps: request `geometries=geojson`, grab `routes[0]
 
   async function drawRoute() {
     const res = await fetch(
-      'https://api.justrouting.tech/osrm/route/v1/driving/' +
+      'https://api.justrouting.tech/route/v1/driving/' +
       '103.708362,1.357371;103.984748,1.352212' +
       '?geometries=geojson&overview=full',
       { headers: { Authorization: 'Bearer ' + API_KEY } }
@@ -44,7 +44,7 @@ Drawing a route takes three steps: request `geometries=geojson`, grab `routes[0]
 
 ```js
 const res = await fetch(
-  'https://api.justrouting.tech/osrm/route/v1/driving/' +
+  'https://api.justrouting.tech/route/v1/driving/' +
   '103.708362,1.357371;103.984748,1.352212?geometries=geojson&overview=full',
   { headers: { Authorization: 'Bearer ' + API_KEY } }
 );

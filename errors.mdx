@@ -13,7 +13,7 @@ Authentication and quota errors:
 { "code": "invalid_api_key", "message": "invalid or revoked API key" }
 ```
 
-OSRM endpoints (`/osrm/*`) follow the OSRM convention: HTTP `400` with a `code` and an optional `message` in the body:
+OSRM endpoints (`/route`, `/table`, `/match`, `/trip`, `/nearest`) follow the OSRM convention: HTTP `400` with a `code` and an optional `message` in the body:
 
 ```json
 { "code": "NoRoute", "message": "Impossible route between points" }

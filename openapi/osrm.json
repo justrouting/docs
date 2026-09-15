@@ -12,7 +12,7 @@
   },
   "servers": [
     {
-      "url": "https://api.justrouting.tech/osrm",
+      "url": "https://api.justrouting.tech",
       "description": "Production"
     }
   ],

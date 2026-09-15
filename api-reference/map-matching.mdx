@@ -12,7 +12,7 @@ Powered by the OSRM Match service.
 ## Endpoint
 
 ```
-GET https://api.justrouting.tech/osrm/match/v1/{profile}/{coordinates}
+GET https://api.justrouting.tech/match/v1/{profile}/{coordinates}
 ```
 
 | URL parameter | Description |
@@ -40,7 +40,7 @@ GET https://api.justrouting.tech/osrm/match/v1/{profile}/{coordinates}
 
 <CodeGroup>
 ```bash curl
-curl "https://api.justrouting.tech/osrm/match/v1/driving/103.71,1.35;103.72,1.35;103.73,1.35?timestamps=1694500000;1694500030;1694500060&radiuses=10;10;10&geometries=geojson" \
+curl "https://api.justrouting.tech/match/v1/driving/103.71,1.35;103.72,1.35;103.73,1.35?timestamps=1694500000;1694500030;1694500060&radiuses=10;10;10&geometries=geojson" \
   -H "Authorization: Bearer $JUSTROUTING_API_KEY"
 ```
 

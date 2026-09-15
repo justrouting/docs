@@ -14,7 +14,7 @@ Returns an N×N matrix of driving times (seconds) and distances (meters) in a si
 ## Endpoint
 
 ```
-GET https://api.justrouting.tech/osrm/table/v1/{profile}/{coordinates}
+GET https://api.justrouting.tech/table/v1/{profile}/{coordinates}
 ```
 
 | URL parameter | Description |
@@ -37,13 +37,13 @@ GET https://api.justrouting.tech/osrm/table/v1/{profile}/{coordinates}
 
 <CodeGroup>
 ```bash 3×3 duration matrix
-curl "https://api.justrouting.tech/osrm/table/v1/driving/103.708362,1.357371;103.8514,1.2897;103.984748,1.352212" \
+curl "https://api.justrouting.tech/table/v1/driving/103.708362,1.357371;103.8514,1.2897;103.984748,1.352212" \
   -H "Authorization: Bearer $JUSTROUTING_API_KEY"
 ```
 
 ```bash Only the depot row
 # sources=0: returns only row 0 — two-thirds cheaper
-curl "https://api.justrouting.tech/osrm/table/v1/driving/103.708362,1.357371;103.8514,1.2897;103.984748,1.352212?sources=0&annotations=duration,distance" \
+curl "https://api.justrouting.tech/table/v1/driving/103.708362,1.357371;103.8514,1.2897;103.984748,1.352212?sources=0&annotations=duration,distance" \
   -H "Authorization: Bearer $JUSTROUTING_API_KEY"
 ```
 
