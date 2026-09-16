@@ -13,10 +13,6 @@ Three steps, three minutes. No credit card required.
 2. Log in and open the [Dashboard](https://justrouting.tech/dashboard), then click **Create API Key**
 3. Copy the key — it is shown in full only once
 
-```bash
-export JUSTROUTING_API_KEY="your-key-here"
-```
-
 ## 2. Make your first request
 
 Try the route from Marina Bay to Changi Airport in Singapore (replace the key with your own):
@@ -24,7 +20,7 @@ Try the route from Marina Bay to Changi Airport in Singapore (replace the key wi
 <CodeGroup>
 ```bash curl
 curl "https://api.justrouting.tech/route/v1/driving/103.708362,1.357371;103.984748,1.352212?overview=full&steps=true" \
-  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```python Python
@@ -45,7 +41,7 @@ print(f"Duration: {route.duration / 60:.0f} min")
 ```ts JavaScript
 import { Client } from '@justrouting/client';
 
-const client = new Client(process.env.JUSTROUTING_API_KEY);
+const client = new Client("YOUR_API_KEY");
 
 const route = await client.routes.get({
   origin: [103.708362, 1.357371],
