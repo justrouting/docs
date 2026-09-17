@@ -34,7 +34,7 @@
         "tags": ["route"],
         "summary": "Find the fastest route between coordinates in order",
         "operationId": "getRoute",
-        "x-mint": { "metadata": { "sidebarTitle": "route" } },
+        "x-mint": { "metadata": { "title": "route", "sidebarTitle": "route", "description": "Find the fastest route between coordinates in order" } },
         "parameters": [
           {
             "name": "profile",
@@ -113,7 +113,7 @@
         "tags": ["table"],
         "summary": "Compute durations/distances between all pairs of coordinates",
         "operationId": "getTable",
-        "x-mint": { "metadata": { "sidebarTitle": "table" } },
+        "x-mint": { "metadata": { "title": "table", "sidebarTitle": "table", "description": "Compute durations/distances between all pairs of coordinates" } },
         "parameters": [
           {
             "name": "profile",
@@ -195,7 +195,7 @@
         "tags": ["match"],
         "summary": "Snap a GPS trace to the road network",
         "operationId": "getMatch",
-        "x-mint": { "metadata": { "sidebarTitle": "match" } },
+        "x-mint": { "metadata": { "title": "match", "sidebarTitle": "match", "description": "Snap a GPS trace to the road network" } },
         "parameters": [
           {
             "name": "profile",
@@ -280,7 +280,7 @@
         "tags": ["trip"],
         "summary": "Solve the traveling salesman problem for the given coordinates",
         "operationId": "getTrip",
-        "x-mint": { "metadata": { "sidebarTitle": "trip" } },
+        "x-mint": { "metadata": { "title": "trip", "sidebarTitle": "trip", "description": "Solve the traveling salesman problem for the given coordinates" } },
         "parameters": [
           {
             "name": "profile",
@@ -354,7 +354,7 @@
         "tags": ["nearest"],
         "summary": "Snap a single coordinate to the nearest routable segments",
         "operationId": "getNearest",
-        "x-mint": { "metadata": { "sidebarTitle": "nearest" } },
+        "x-mint": { "metadata": { "title": "nearest", "sidebarTitle": "nearest", "description": "Snap a single coordinate to the nearest routable segments" } },
         "parameters": [
           {
             "name": "profile",

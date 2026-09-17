@@ -33,7 +33,7 @@
         "tags": ["optimize"],
         "summary": "Solve a vehicle routing problem",
         "operationId": "solveOptimize",
-        "x-mint": { "metadata": { "sidebarTitle": "optimize" } },
+        "x-mint": { "metadata": { "title": "optimize", "sidebarTitle": "optimize", "description": "Solve a vehicle routing problem" } },
         "requestBody": {
           "required": true,
           "content": {
