@@ -40,14 +40,14 @@
       },
       {
         "group": "OpenAPI",
-        "icon": "code",
+        "icon": "terminal",
         "pages": [
-          "openapi/osrm.json GET /route/v1/{profile}/{coordinates}",
-          "openapi/osrm.json GET /table/v1/{profile}/{coordinates}",
-          "openapi/osrm.json GET /match/v1/{profile}/{coordinates}",
-          "openapi/osrm.json GET /trip/v1/{profile}/{coordinates}",
-          "openapi/osrm.json GET /nearest/v1/{profile}/{coordinates}",
-          "openapi/optimize.json POST /optimize"
+          "openapi/openapi.json GET /route/v1/{profile}/{coordinates}",
+          "openapi/openapi.json GET /table/v1/{profile}/{coordinates}",
+          "openapi/openapi.json GET /match/v1/{profile}/{coordinates}",
+          "openapi/openapi.json GET /trip/v1/{profile}/{coordinates}",
+          "openapi/openapi.json GET /nearest/v1/{profile}/{coordinates}",
+          "openapi/openapi.json POST /optimize"
         ]
       },
       {
