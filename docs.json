@@ -42,12 +42,12 @@
         "group": "OpenAPI",
         "icon": "terminal",
         "pages": [
-          "openapi/openapi.json GET /route/v1/{profile}/{coordinates}",
-          "openapi/openapi.json GET /table/v1/{profile}/{coordinates}",
-          "openapi/openapi.json GET /match/v1/{profile}/{coordinates}",
-          "openapi/openapi.json GET /trip/v1/{profile}/{coordinates}",
-          "openapi/openapi.json GET /nearest/v1/{profile}/{coordinates}",
-          "openapi/openapi.json POST /optimize"
+          "openapi.json GET /route/v1/{profile}/{coordinates}",
+          "openapi.json GET /table/v1/{profile}/{coordinates}",
+          "openapi.json GET /match/v1/{profile}/{coordinates}",
+          "openapi.json GET /trip/v1/{profile}/{coordinates}",
+          "openapi.json GET /nearest/v1/{profile}/{coordinates}",
+          "openapi.json POST /optimize"
         ]
       },
       {
