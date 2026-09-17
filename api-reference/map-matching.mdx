@@ -3,9 +3,7 @@ title: "Map Matching API"
 description: "Snap noisy GPS traces to the real road network and get back the actual driven route."
 ---
 
-# Map Matching API
-
-Snaps a GPS trace to the real roads: send a timestamped coordinate sequence, get back the matched route (geometry, distance, duration) plus where each point landed on the network. Useful for cleaning delivery traces, analyzing actual driven paths, and mileage accounting.
+Map Matching API snaps a GPS trace to the real roads: send a timestamped coordinate sequence, get back the matched route (geometry, distance, duration) plus where each point landed on the network. Useful for cleaning delivery traces, analyzing actual driven paths, and mileage accounting.
 
 Powered by the OSRM Match service.
 
@@ -41,7 +39,7 @@ GET https://api.justrouting.tech/match/v1/{profile}/{coordinates}
 <CodeGroup>
 ```bash curl
 curl "https://api.justrouting.tech/match/v1/driving/103.71,1.35;103.72,1.35;103.73,1.35?timestamps=1694500000;1694500030;1694500060&radiuses=10;10;10&geometries=geojson" \
-  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```python Python

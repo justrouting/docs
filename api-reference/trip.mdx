@@ -3,9 +3,7 @@ title: "Trip API"
 description: "Solve the traveling salesman problem — find the fastest visiting order for many stops."
 ---
 
-# Trip API
-
-Traveling salesman problem (TSP): given several stops, return an approximately optimal visiting order. Great for delivery route previews and multi-stop visit planning. Powered by the OSRM Trip service.
+Trip API solves the traveling salesman problem (TSP): given several stops, it returns an approximately optimal visiting order. Great for delivery route previews and multi-stop visit planning. Powered by the OSRM Trip service.
 
 <Note>
   Need richer constraints (multiple vehicles, time windows, capacity)? Use [Fleet Optimization](/api-reference/fleet-optimization) instead.
@@ -42,7 +40,7 @@ GET https://api.justrouting.tech/trip/v1/{profile}/{coordinates}
 ```bash
 # 5 stops in Singapore, no round trip, start from the first point
 curl "https://api.justrouting.tech/trip/v1/driving/103.708362,1.357371;103.8514,1.2897;103.82324228,1.32408622;103.78432387,1.31490148;103.984748,1.352212?roundtrip=false&source=first&geometries=geojson" \
-  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ## Response

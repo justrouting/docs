@@ -3,15 +3,13 @@ title: "Turn-by-Turn Navigation"
 description: "Extract maneuver instructions from route steps to build navigation UI."
 ---
 
-# Turn-by-Turn Navigation
-
 Request `steps=true` and every entry in `legs[].steps[]` is one maneuver plus a stretch of straight-line driving. Use them to build navigation lists, voice prompts, or per-segment highlighting.
 
 ## Getting the steps
 
 ```bash
 curl "https://api.justrouting.tech/route/v1/driving/103.708362,1.357371;103.984748,1.352212?steps=true&overview=full" \
-  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```json step-example.json
@@ -74,7 +72,7 @@ for step in route.legs[0].steps:
 ```ts JavaScript
 import { Client } from '@justrouting/client';
 
-const client = new Client(process.env.JUSTROUTING_API_KEY);
+const client = new Client("YOUR_API_KEY");
 const route = await client.routes.get({
   origin: [103.708362, 1.357371],
   destination: [103.984748, 1.352212],

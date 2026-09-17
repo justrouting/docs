@@ -3,9 +3,7 @@ title: "Directions API"
 description: "Get road-following routes between coordinates — distance, duration, geometry, and turn-by-turn steps."
 ---
 
-# Directions API
-
-Returns the real road route between two points (or ordered waypoints): distance (meters), estimated duration (seconds), route geometry (polyline or GeoJSON), and optional turn-by-turn steps.
+Directions API returns the real road route between two points (or ordered waypoints): distance (meters), estimated duration (seconds), route geometry (polyline or GeoJSON), and optional turn-by-turn steps.
 
 <Tip>
   **Want to try it first?** Open the [Live Demo](https://justrouting.tech) and drag the A/B markers on the map.
@@ -27,7 +25,7 @@ GET https://api.justrouting.tech/route/v1/{profile}/{coordinates}
 <CodeGroup>
 ```bash curl
 curl "https://api.justrouting.tech/route/v1/driving/103.708362,1.357371;103.984748,1.352212?overview=full&steps=true" \
-  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```python Python
@@ -47,7 +45,7 @@ print(f"{route.distance / 1000:.1f} km, {route.duration / 60:.0f} min")
 ```ts JavaScript
 import { Client } from '@justrouting/client';
 
-const client = new Client(process.env.JUSTROUTING_API_KEY);
+const client = new Client("YOUR_API_KEY");
 
 const route = await client.routes.get({
   origin: [103.708362, 1.357371],
@@ -96,19 +94,19 @@ route, err := client.Routes.Get(ctx, &justrouting.RouteRequest{
     ```bash
     # A → B → C, in order
     curl "https://api.justrouting.tech/route/v1/driving/103.708362,1.357371;103.8514,1.2897;103.984748,1.352212" \
-      -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+      -H "Authorization: Bearer YOUR_API_KEY"
     ```
   </Tab>
   <Tab title="Avoid motorways">
     ```bash
     curl "https://api.justrouting.tech/route/v1/driving/103.708362,1.357371;103.984748,1.352212?exclude=motorway" \
-      -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+      -H "Authorization: Bearer YOUR_API_KEY"
     ```
   </Tab>
   <Tab title="GeoJSON geometry">
     ```bash
     curl "https://api.justrouting.tech/route/v1/driving/103.708362,1.357371;103.984748,1.352212?geometries=geojson&overview=full" \
-      -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+      -H "Authorization: Bearer YOUR_API_KEY"
     ```
   </Tab>
 </Tabs>

@@ -3,8 +3,6 @@ title: "Fleet Optimization API"
 description: "Multi-vehicle route optimization powered by VROOM — assign jobs, sequence stops, respect time windows and capacity."
 ---
 
-# Fleet Optimization API
-
 Multi-vehicle route optimization (VRP) powered by [VROOM](https://github.com/VROOM-Project/vroom): you send JSON describing vehicles and tasks, you get back the optimal assignment and visit order. Distances come from the real OSRM road network — not straight lines.
 
 <Tip>
@@ -23,7 +21,7 @@ Content-Type: application/json
 <CodeGroup>
 ```bash curl
 curl -X POST "https://api.justrouting.tech/optimize" \
-  -H "Authorization: Bearer $JUSTROUTING_API_KEY" \
+  -H "Authorization: Bearer YOUR_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "vehicles": [
@@ -100,9 +98,19 @@ There are also `shipments` (pickup-then-delivery pairs) and more advanced fields
 
 ## Getting route geometry back
 
-Add `"geometry": true` to the request body and every route carries a polyline:
+Add `"geometry": true` to the request body — a top-level field, next to `vehicles` and `jobs`:
 
-```json
+```json request-body.json
+{
+  "vehicles": [ ... ],
+  "jobs": [ ... ],
+  "geometry": true
+}
+```
+
+Every route in the response then carries a polyline:
+
+```json response-example.json
 {
   "code": 0,
   "summary": { "cost": 12345, "routes": 2, "unassigned": 0, "duration": 4200 },

@@ -3,9 +3,7 @@ title: "Distance Matrix API"
 description: "Compute travel times and distances between many points in a single request."
 ---
 
-# Distance Matrix API
-
-Returns an N×N matrix of driving times (seconds) and distances (meters) in a single request, powered by the OSRM Table service. Ideal for nearest-store lookup, dispatch, and batch route planning.
+Distance Matrix API returns an N×N matrix of driving times (seconds) and distances (meters) in a single request, powered by the `table` service. Ideal for nearest-store lookup, dispatch, and batch route planning.
 
 <Tip>
   **Try it first?** Switch the [Live Demo](https://justrouting.tech) to the Distance Matrix tab and drag the markers around.
@@ -38,13 +36,13 @@ GET https://api.justrouting.tech/table/v1/{profile}/{coordinates}
 <CodeGroup>
 ```bash 3×3 duration matrix
 curl "https://api.justrouting.tech/table/v1/driving/103.708362,1.357371;103.8514,1.2897;103.984748,1.352212" \
-  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```bash Only the depot row
 # sources=0: returns only row 0 — two-thirds cheaper
 curl "https://api.justrouting.tech/table/v1/driving/103.708362,1.357371;103.8514,1.2897;103.984748,1.352212?sources=0&annotations=duration,distance" \
-  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```python Python
@@ -66,7 +64,7 @@ print(f"depot → C: {m.distance(0, 1) / 1000:.1f} km")
 ```ts JavaScript
 import { Client } from '@justrouting/client';
 
-const client = new Client(process.env.JUSTROUTING_API_KEY);
+const client = new Client("YOUR_API_KEY");
 
 const m = await client.matrix.get({
   coordinates: [[103.708362, 1.357371], [103.8514, 1.2897], [103.984748, 1.352212]],

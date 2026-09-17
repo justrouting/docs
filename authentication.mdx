@@ -3,8 +3,6 @@ title: "Authentication"
 description: "How API keys work in JustRouting — creating keys, sending them, and understanding authentication errors."
 ---
 
-# Authentication
-
 Every JustRouting API request requires an API key, sent as an HTTP Bearer header:
 
 ```bash
@@ -19,7 +17,7 @@ Authorization: Bearer <YOUR_API_KEY>
 
 ```bash
 # Store it in an environment variable, never in your code repository
-export JUSTROUTING_API_KEY="jr_live_..."
+export JUSTROUTING_API_KEY="..."
 ```
 
 ## What authentication failures look like
@@ -47,7 +45,7 @@ Both return HTTP `401`. Fixes: check the header spelling (`Authorization: Bearer
 <CodeGroup>
 ```bash curl
 curl "https://api.justrouting.tech/route/v1/driving/103.708362,1.357371;103.984748,1.352212" \
-  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ```python Python
@@ -57,7 +55,7 @@ client = justrouting.Client("YOUR_API_KEY")  # sent automatically on every reque
 ```
 
 ```ts JavaScript
-const client = new Client(process.env.JUSTROUTING_API_KEY);
+const client = new Client("YOUR_API_KEY");
 ```
 
 ```go Go

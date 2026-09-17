@@ -3,9 +3,7 @@ title: "Nearest API"
 description: "Snap a coordinate to the road network and get the nearest routable segments."
 ---
 
-# Nearest API
-
-Snaps a single coordinate to the road network and returns the nearest `n` segments. Useful for validating whether a coordinate is routable, getting the exact snapped position, and obtaining `hint` values that speed up subsequent requests.
+Nearest API snaps a single coordinate to the road network and returns the nearest `n` segments. Useful for validating whether a coordinate is routable, getting the exact snapped position, and obtaining `hint` values that speed up subsequent requests.
 
 Powered by the OSRM Nearest service.
 
@@ -31,7 +29,7 @@ GET https://api.justrouting.tech/nearest/v1/{profile}/{coordinates}
 
 ```bash
 curl "https://api.justrouting.tech/nearest/v1/driving/103.708362,1.357371?number=2" \
-  -H "Authorization: Bearer $JUSTROUTING_API_KEY"
+  -H "Authorization: Bearer YOUR_API_KEY"
 ```
 
 ## Response
