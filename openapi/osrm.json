@@ -23,7 +23,7 @@
   ],
   "tags": [
     { "name": "route", "description": "Directions between coordinates" },
-    { "name": "table", "description": "N×N travel time/distance matrix" },
+    { "name": "table", "description": "NxN travel time/distance matrix" },
     { "name": "match", "description": "Map matching for GPS traces" },
     { "name": "trip", "description": "Traveling salesman optimization" },
     { "name": "nearest", "description": "Snap a coordinate to the road network" }
@@ -34,6 +34,7 @@
         "tags": ["route"],
         "summary": "Find the fastest route between coordinates in order",
         "operationId": "getRoute",
+        "x-mint": { "metadata": { "sidebarTitle": "route" } },
         "parameters": [
           {
             "name": "profile",
@@ -112,6 +113,7 @@
         "tags": ["table"],
         "summary": "Compute durations/distances between all pairs of coordinates",
         "operationId": "getTable",
+        "x-mint": { "metadata": { "sidebarTitle": "table" } },
         "parameters": [
           {
             "name": "profile",
@@ -193,6 +195,7 @@
         "tags": ["match"],
         "summary": "Snap a GPS trace to the road network",
         "operationId": "getMatch",
+        "x-mint": { "metadata": { "sidebarTitle": "match" } },
         "parameters": [
           {
             "name": "profile",
@@ -277,6 +280,7 @@
         "tags": ["trip"],
         "summary": "Solve the traveling salesman problem for the given coordinates",
         "operationId": "getTrip",
+        "x-mint": { "metadata": { "sidebarTitle": "trip" } },
         "parameters": [
           {
             "name": "profile",
@@ -350,6 +354,7 @@
         "tags": ["nearest"],
         "summary": "Snap a single coordinate to the nearest routable segments",
         "operationId": "getNearest",
+        "x-mint": { "metadata": { "sidebarTitle": "nearest" } },
         "parameters": [
           {
             "name": "profile",

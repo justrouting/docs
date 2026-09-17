@@ -16,6 +16,12 @@
       "description": "Production"
     }
   ],
+  "tags": [
+    {
+      "name": "optimize",
+      "description": "Hosted VROOM vehicle routing solver"
+    }
+  ],
   "security": [
     {
       "bearerAuth": []
@@ -24,8 +30,10 @@
   "paths": {
     "/optimize": {
       "post": {
+        "tags": ["optimize"],
         "summary": "Solve a vehicle routing problem",
         "operationId": "solveOptimize",
+        "x-mint": { "metadata": { "sidebarTitle": "optimize" } },
         "requestBody": {
           "required": true,
           "content": {

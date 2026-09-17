@@ -32,18 +32,22 @@
         "pages": [
           "api-reference/directions",
           "api-reference/distance-matrix",
-          "api-reference/fleet-optimization",
           "api-reference/map-matching",
           "api-reference/trip",
           "api-reference/nearest",
-          {
-            "group": "OSRM (OpenAPI)",
-            "openapi": "openapi/osrm.json"
-          },
-          {
-            "group": "Optimize (OpenAPI)",
-            "openapi": "openapi/optimize.json"
-          }
+          "api-reference/fleet-optimization"
+        ]
+      },
+      {
+        "group": "OpenAPI",
+        "icon": "code",
+        "pages": [
+          "openapi/osrm.json GET /route/v1/{profile}/{coordinates}",
+          "openapi/osrm.json GET /table/v1/{profile}/{coordinates}",
+          "openapi/osrm.json GET /match/v1/{profile}/{coordinates}",
+          "openapi/osrm.json GET /trip/v1/{profile}/{coordinates}",
+          "openapi/osrm.json GET /nearest/v1/{profile}/{coordinates}",
+          "openapi/optimize.json POST /optimize"
         ]
       },
       {
