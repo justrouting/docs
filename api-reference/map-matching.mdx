@@ -20,15 +20,34 @@ GET https://api.justrouting.tech/match/v1/{profile}/{coordinates}
 
 ## Request Parameters
 
+### Service options
+
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `timestamps` | string | — | UNIX timestamps in seconds for each point, **monotonically increasing**, one per coordinate |
-| `radiuses` | string | `5` | GPS accuracy in meters per point (standard deviation of the true position) |
+| `radiuses` | string | `5` | Standard deviation of GPS precision in meters per point — use device-reported accuracy. The search area is sized so the correct candidate is found 99.9% of the time; larger radii mean more candidates and far-away candidates are penalized less |
 | `steps` | bool | `false` | Return turn-by-turn steps |
 | `geometries` | string | `polyline` | Same as [Directions](/api-reference/directions) |
 | `overview` | string | `simplified` | Same as [Directions](/api-reference/directions) |
+| `annotations` | string | `false` | Per-coordinate metadata along the route geometry: `true`, or a comma-separated list of `nodes`, `distance`, `duration`, `datasources`, `weight`, `speed` |
 | `gaps` | string | `split` | Split into sub-traces on large timestamp jumps (`split` / `ignore`) |
 | `tidy` | bool | `false` | Allow removing noisy points to improve matching quality |
+| `waypoints` | string | all | Indices of trace points to treat as waypoints in the response, e.g. `0;3`. Default is to treat all trace points as waypoints |
+
+### General options
+
+These options apply to all routing services. Options that take one value per coordinate use the array-like encoding `{option}={element};{element}[;...]` — the number of elements must match the number of coordinates (except `generate_hints` and `exclude`). Pass an empty element to use the default for that coordinate, e.g. `bearings=;90,20;`.
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `bearings` | string | — | Limit snapping to segments with the given bearing; each element is `{value},{range}` with value 0–360° clockwise from true north and range 0–180° |
+| `radiuses` | string | — | Limit snapping to the given radius in meters per coordinate, `unlimited` for no limit. For match, prefer the GPS-accuracy semantics in the Service options table above |
+| `generate_hints` | bool | `true` | Add a `hint` to each response waypoint for reuse in later requests via `hints` |
+| `hints` | string | — | Base64 `hint` from a previous response; speeds up snapping significantly |
+| `approaches` | string | — | Restrict the road direction at a waypoint; per element `curb` / `opposite` / `unrestricted` (default) |
+| `exclude` | string | — | Additive list of road classes to avoid, e.g. `exclude=motorway` |
+| `snapping` | string | `default` | `any` snaps to any edge in the graph; `default` avoids edges that cannot be used as start/end points |
+| `skip_waypoints` | bool | `false` | Remove waypoints from the response (they are still calculated, just not serialized) |
 
 <Info>
   Large timestamp gaps (>60s) or improbable jumps **split the trace automatically** into multiple sub-traces — that's a feature, not a bug: one request can return several `matchings`.
@@ -83,9 +102,13 @@ for route in matching.matchings:
 
 | Field | Description |
 | --- | --- |
-| `tracepoints[]` | One entry per input point; `null` marks dropped outliers; `matchings_index` says which sub-trace it belongs to |
-| `matchings[].confidence` | Matching confidence, `0-1` |
-| `matchings[].geometry` / `distance` / `duration` | The matched route that was actually driven |
+| `tracepoints[]` | One entry per input point, in input order; `null` marks dropped outliers |
+| `tracepoints[].matchings_index` | Index of the entry in `matchings` this sub-trace was matched to |
+| `tracepoints[].waypoint_index` | Position of the point inside the matched route |
+| `tracepoints[].alternatives_count` | Number of probable alternative matchings; `0` means matched unambiguously — split the trace at these points for incremental map matching |
+| `matchings[]` | Array of Route objects that assemble the trace, one per sub-trace |
+| `matchings[].confidence` | Matching confidence, `0-1`; `1` is very confident |
+| `matchings[].geometry` / `distance` / `duration` | The matched route that was actually driven (full Route object incl. `legs` and optional `steps`) |
 
 ## Best practices
 

@@ -115,6 +115,21 @@
           },
           {
             "$ref": "#/components/parameters/Exclude"
+          },
+          {
+            "$ref": "#/components/parameters/Approaches"
+          },
+          {
+            "$ref": "#/components/parameters/Snapping"
+          },
+          {
+            "$ref": "#/components/parameters/GenerateHints"
+          },
+          {
+            "$ref": "#/components/parameters/SkipWaypoints"
+          },
+          {
+            "$ref": "#/components/parameters/Waypoints"
           }
         ],
         "responses": {
@@ -260,6 +275,30 @@
               "exclusiveMinimum": 0
             },
             "description": "Scale all durations by this factor."
+          },
+          {
+            "$ref": "#/components/parameters/Bearings"
+          },
+          {
+            "$ref": "#/components/parameters/Radiuses"
+          },
+          {
+            "$ref": "#/components/parameters/Hints"
+          },
+          {
+            "$ref": "#/components/parameters/Approaches"
+          },
+          {
+            "$ref": "#/components/parameters/Exclude"
+          },
+          {
+            "$ref": "#/components/parameters/Snapping"
+          },
+          {
+            "$ref": "#/components/parameters/GenerateHints"
+          },
+          {
+            "$ref": "#/components/parameters/SkipWaypoints"
           }
         ],
         "responses": {
@@ -389,6 +428,33 @@
               "default": false
             },
             "description": "Allow removing noisy points to improve matching quality."
+          },
+          {
+            "$ref": "#/components/parameters/Bearings"
+          },
+          {
+            "$ref": "#/components/parameters/Hints"
+          },
+          {
+            "$ref": "#/components/parameters/Approaches"
+          },
+          {
+            "$ref": "#/components/parameters/Exclude"
+          },
+          {
+            "$ref": "#/components/parameters/Snapping"
+          },
+          {
+            "$ref": "#/components/parameters/GenerateHints"
+          },
+          {
+            "$ref": "#/components/parameters/SkipWaypoints"
+          },
+          {
+            "$ref": "#/components/parameters/Annotations"
+          },
+          {
+            "$ref": "#/components/parameters/Waypoints"
           }
         ],
         "responses": {
@@ -510,6 +576,33 @@
           },
           {
             "$ref": "#/components/parameters/Overview"
+          },
+          {
+            "$ref": "#/components/parameters/Bearings"
+          },
+          {
+            "$ref": "#/components/parameters/Radiuses"
+          },
+          {
+            "$ref": "#/components/parameters/Hints"
+          },
+          {
+            "$ref": "#/components/parameters/Approaches"
+          },
+          {
+            "$ref": "#/components/parameters/Exclude"
+          },
+          {
+            "$ref": "#/components/parameters/Snapping"
+          },
+          {
+            "$ref": "#/components/parameters/GenerateHints"
+          },
+          {
+            "$ref": "#/components/parameters/SkipWaypoints"
+          },
+          {
+            "$ref": "#/components/parameters/Annotations"
           }
         ],
         "responses": {
@@ -604,6 +697,27 @@
           },
           {
             "$ref": "#/components/parameters/Bearings"
+          },
+          {
+            "$ref": "#/components/parameters/Radiuses"
+          },
+          {
+            "$ref": "#/components/parameters/Hints"
+          },
+          {
+            "$ref": "#/components/parameters/Approaches"
+          },
+          {
+            "$ref": "#/components/parameters/Exclude"
+          },
+          {
+            "$ref": "#/components/parameters/Snapping"
+          },
+          {
+            "$ref": "#/components/parameters/GenerateHints"
+          },
+          {
+            "$ref": "#/components/parameters/SkipWaypoints"
           }
         ],
         "responses": {
@@ -813,7 +927,8 @@
           "enum": [
             "full",
             "simplified",
-            "false"
+            "false",
+            "by_legs"
           ],
           "default": "simplified"
         },
@@ -902,7 +1017,54 @@
         "schema": {
           "type": "string"
         },
-        "description": "Road classes to avoid, e.g. `motorway`."
+        "description": "Road classes to avoid (additive list), e.g. `motorway`."
+      },
+      "Approaches": {
+        "name": "approaches",
+        "in": "query",
+        "schema": {
+          "type": "string"
+        },
+        "description": "Restrict the road direction at each waypoint: `curb` / `opposite` / `unrestricted` (default), e.g. `curb;opposite`."
+      },
+      "Snapping": {
+        "name": "snapping",
+        "in": "query",
+        "schema": {
+          "type": "string",
+          "enum": [
+            "default",
+            "any"
+          ],
+          "default": "default"
+        },
+        "description": "`default` avoids edges that cannot be used as start/end points; `any` snaps to any edge in the graph."
+      },
+      "GenerateHints": {
+        "name": "generate_hints",
+        "in": "query",
+        "schema": {
+          "type": "boolean",
+          "default": true
+        },
+        "description": "Add a `hint` to response waypoints for reuse in later requests."
+      },
+      "SkipWaypoints": {
+        "name": "skip_waypoints",
+        "in": "query",
+        "schema": {
+          "type": "boolean",
+          "default": false
+        },
+        "description": "Remove waypoints from the response (still calculated, not serialized)."
+      },
+      "Waypoints": {
+        "name": "waypoints",
+        "in": "query",
+        "schema": {
+          "type": "string"
+        },
+        "description": "Indices of input coordinates to treat as waypoints in the response, e.g. `0;3`. Default is all input coordinates."
       },
       "Sources": {
         "name": "sources",
@@ -973,7 +1135,7 @@
           },
           "type": {
             "type": "string",
-            "description": "turn, depart, arrive, merge, on ramp, off ramp, roundabout, fork, continue, ..."
+            "description": "turn, new name, depart, arrive, merge, on ramp, off ramp, fork, end of road, continue, roundabout, rotary, roundabout turn, notification, exit roundabout, exit rotary"
           },
           "modifier": {
             "type": "string",
@@ -987,6 +1149,87 @@
               "left",
               "sharp left"
             ]
+          },
+          "exit": {
+            "type": "integer",
+            "description": "Number of the roundabout/rotary exit to take; absent when the destination is on the roundabout."
+          }
+        }
+      },
+      "Lane": {
+        "type": "object",
+        "properties": {
+          "indications": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "none",
+                "uturn",
+                "sharp right",
+                "right",
+                "slight right",
+                "straight",
+                "slight left",
+                "left",
+                "sharp left"
+              ]
+            },
+            "description": "Markings for the lane; a lane can have several."
+          },
+          "valid": {
+            "type": "boolean",
+            "description": "Whether the lane is a valid choice in the current maneuver."
+          }
+        }
+      },
+      "Intersection": {
+        "type": "object",
+        "properties": {
+          "location": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "[lng, lat]"
+          },
+          "bearings": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Bearings of all roads at the intersection, 0-359 (0 = true north)."
+          },
+          "classes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Road classes of the exiting roads."
+          },
+          "entry": {
+            "type": "array",
+            "items": {
+              "type": "boolean"
+            },
+            "description": "Flags 1:1 with bearings; true means the road can be entered on a valid route."
+          },
+          "in": {
+            "type": "integer",
+            "description": "Index into bearings of the road you came from; absent for depart."
+          },
+          "out": {
+            "type": "integer",
+            "description": "Index into bearings of the road you take; absent for arrive."
+          },
+          "lanes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Lane"
+            },
+            "description": "Available turn lanes; absent when there is no lane data."
           }
         }
       },
@@ -1001,6 +1244,9 @@
             "type": "number",
             "description": "Seconds."
           },
+          "weight": {
+            "type": "number"
+          },
           "geometry": {
             "type": "string",
             "description": "Polyline geometry."
@@ -1011,11 +1257,42 @@
           "ref": {
             "type": "string"
           },
+          "pronunciation": {
+            "type": "string",
+            "description": "IPA phonetic transcription of the name."
+          },
+          "destinations": {
+            "type": "string",
+            "description": "Destinations of the way."
+          },
+          "exits": {
+            "type": "string",
+            "description": "Exit numbers or names of the way."
+          },
           "mode": {
+            "type": "string"
+          },
+          "driving_side": {
+            "type": "string",
+            "enum": [
+              "left",
+              "right"
+            ]
+          },
+          "rotary_name": {
+            "type": "string"
+          },
+          "rotary_pronunciation": {
             "type": "string"
           },
           "maneuver": {
             "$ref": "#/components/schemas/StepManeuver"
+          },
+          "intersections": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Intersection"
+            }
           }
         }
       },
@@ -1062,6 +1339,12 @@
               "type": "number"
             }
           },
+          "weight": {
+            "type": "array",
+            "items": {
+              "type": "number"
+            }
+          },
           "speed": {
             "type": "array",
             "items": {
@@ -1072,6 +1355,23 @@
             "type": "array",
             "items": {
               "type": "integer"
+            }
+          },
+          "datasources": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            }
+          },
+          "metadata": {
+            "type": "object",
+            "properties": {
+              "datasource_names": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
             }
           }
         }
@@ -1302,7 +1602,8 @@
               "NoMatch",
               "NoTrips",
               "TooBig",
-              "DisabledDataset"
+              "DisabledDataset",
+              "NotImplemented"
             ]
           },
           "message": {

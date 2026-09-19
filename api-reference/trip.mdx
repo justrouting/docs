@@ -22,14 +22,49 @@ GET https://api.justrouting.tech/trip/v1/{profile}/{coordinates}
 
 ## Request Parameters
 
+### Service options
+
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `roundtrip` | bool | `true` | Return to the start (closed loop) |
 | `source` | string | `any` | Start: `any` or `first` (the first coordinate) |
 | `destination` | string | `any` | End: `any` or `last` (the last coordinate) |
 | `steps` | bool | `false` | Return turn instructions |
-| `geometries` | string | `polyline` | `polyline` / `geojson` |
-| `overview` | string | `simplified` | `full` / `simplified` / `false` |
+| `geometries` | string | `polyline` | `polyline` / `polyline6` / `geojson` |
+| `overview` | string | `simplified` | `full` / `simplified` / `false` / `by_legs` |
+| `annotations` | string | `false` | Per-coordinate metadata along the route geometry: `true`, or a comma-separated list of `nodes`, `distance`, `duration`, `datasources`, `weight`, `speed` |
+
+### General options
+
+These options apply to all routing services. Options that take one value per coordinate use the array-like encoding `{option}={element};{element}[;...]` — the number of elements must match the number of coordinates (except `generate_hints` and `exclude`). Pass an empty element to use the default for that coordinate, e.g. `bearings=;90,20;`.
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `bearings` | string | — | Limit snapping to segments with the given bearing; each element is `{value},{range}` with value 0–360° clockwise from true north and range 0–180° |
+| `radiuses` | string | — | Limit snapping to the given radius in meters per coordinate, `unlimited` for no limit |
+| `generate_hints` | bool | `true` | Add a `hint` to each response waypoint for reuse in later requests via `hints` |
+| `hints` | string | — | Base64 `hint` from a previous response; speeds up snapping significantly |
+| `approaches` | string | — | Restrict the road direction at a waypoint; per element `curb` / `opposite` / `unrestricted` (default) |
+| `exclude` | string | — | Additive list of road classes to avoid, e.g. `exclude=motorway` |
+| `snapping` | string | `default` | `any` snaps to any edge in the graph; `default` avoids edges that cannot be used as start/end points |
+| `skip_waypoints` | bool | `false` | Remove waypoints from the response (they are still calculated, just not serialized) |
+
+## Fixing start and end points
+
+Use `source` and `destination` to pin where the trip begins and ends: `source=first` starts at the first input coordinate, `destination=last` ends at the last one. With `any`, any coordinate may fill that role — though a round-trip with `source=any&destination=any` still starts at the first input coordinate by default.
+
+Not all combinations of `roundtrip`, `source`, and `destination` are supported:
+
+| `roundtrip` | `source` | `destination` | Supported |
+| --- | --- | --- | --- |
+| `true` | `first` | `last` | ✅ |
+| `true` | `first` | `any` | ✅ |
+| `true` | `any` | `last` | ✅ |
+| `true` | `any` | `any` | ✅ |
+| `false` | `first` | `last` | ✅ |
+| `false` | `first` | `any` | ✅ |
+| `false` | `any` | `last` | ✅ |
+| `false` | `any` | `any` | ❌ returns `NotImplemented` |
 
 <Info>
   TSP is NP-hard, so the result is **approximately optimal** (brute force guarantees the optimum below 10 points). All input coordinates must be connected for the trip to be solvable.
@@ -50,8 +85,10 @@ curl "https://api.justrouting.tech/trip/v1/driving/103.708362,1.357371;103.8514,
   "code": "Ok",
   "waypoints": [
     { "trips_index": 0, "waypoint_index": 0, "location": [103.708362, 1.357371] },
+    { "trips_index": 0, "waypoint_index": 3, "location": [103.8514, 1.2897] },
     { "trips_index": 0, "waypoint_index": 1, "location": [103.82324228, 1.32408622] },
-    { "trips_index": 0, "waypoint_index": 2, "location": [103.8514, 1.2897] }
+    { "trips_index": 0, "waypoint_index": 4, "location": [103.78432387, 1.31490148] },
+    { "trips_index": 0, "waypoint_index": 2, "location": [103.984748, 1.352212] }
   ],
   "trips": [
     {
@@ -68,12 +105,23 @@ curl "https://api.justrouting.tech/trip/v1/driving/103.708362,1.357371;103.8514,
 
 | Field | Description |
 | --- | --- |
-| `waypoints[]` | Each input point ordered by the **optimal visit sequence**; `waypoint_index` is its position in the trip |
+| `waypoints[]` | One entry per input stop, in **input order**; `waypoint_index` is its position in the trip |
+| `waypoints[].trips_index` | Which trip this point belongs to |
 | `trips[]` | The trip(s) — usually one; `geometry` / `distance` / `duration` describe the full visit route |
 
 <Warning>
-  The visiting order comes from the `waypoints` array order — not the order you sent in the request.
+  The `waypoints` array is in **input order** — not visit order. To get the visiting sequence, sort the array by `waypoint_index`.
 </Warning>
+
+## Errors
+
+| HTTP | code | Meaning |
+| --- | --- | --- |
+| 400 | `NoTrips` | Input coordinates are not connected — the TSP cannot be solved |
+| 400 | `NotImplemented` | Unsupported `roundtrip`/`source`/`destination` combination |
+| 400 | `NoSegment` | A coordinate could not be snapped to a road |
+
+See [Errors](/errors) for the full list.
 
 ## Related
 

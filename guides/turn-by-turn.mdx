@@ -29,13 +29,87 @@ curl "https://api.justrouting.tech/route/v1/driving/103.708362,1.357371;103.9847
 
 | Field | Description |
 | --- | --- |
-| `maneuver.type` | Action: `turn`, `depart`, `arrive`, `merge`, `on ramp`, `off ramp`, `roundabout`, `fork`, `continue`, ... |
-| `maneuver.modifier` | Direction: `left`, `slight left`, `straight`, `slight right`, `right`, `sharp left`, `sharp right`, `uturn` |
-| `maneuver.location` | Turn position `[lng, lat]` |
-| `name` / `ref` | Street name / road reference number |
 | `distance` / `duration` | This segment's length (meters) / time (seconds) |
-| `geometry` | This segment's geometry (polyline) |
-| `intersections[].lanes` | Lane information at crossings (with `valid` flags) |
+| `weight` | Routing weight of this step |
+| `geometry` | This segment's geometry (polyline; with `geometries=geojson` a GeoJSON LineString) |
+| `name` / `ref` | Street name / road reference number |
+| `pronunciation` | IPA phonetic transcription of the name (when available) |
+| `destinations` / `exits` | Way destinations / exit numbers (when available) |
+| `mode` | Mode of transportation |
+| `driving_side` | Legal driving side at this step: `left` or `right` |
+| `rotary_name` / `rotary_pronunciation` | Rotary name / pronunciation (rotary steps only) |
+| `maneuver` | The maneuver object, see below |
+| `intersections` | Intersections passed along the segment; the first belongs to the maneuver, see below |
+
+### Maneuver
+
+| Field | Description |
+| --- | --- |
+| `maneuver.location` | Turn position `[lng, lat]` |
+| `maneuver.bearing_before` | Direction of travel immediately before the maneuver, 0–359° clockwise from true north |
+| `maneuver.bearing_after` | Direction of travel immediately after the maneuver, 0–359° clockwise from true north |
+| `maneuver.type` | Action — see the type table below |
+| `maneuver.modifier` | Direction change — see the modifier table below |
+| `maneuver.exit` | Roundabout/rotary exit number to take; absent when the destination is on the roundabout |
+
+**`maneuver.type` values:**
+
+| type | Description |
+| --- | --- |
+| `turn` | Basic turn in the direction of the modifier |
+| `new name` | No turn, but the road name changes (the road itself may turn) |
+| `depart` | Departure of the leg |
+| `arrive` | Destination of the leg |
+| `merge` | Merge onto a street (e.g. highway on-ramp) |
+| `on ramp` | Take a ramp to enter a highway |
+| `off ramp` | Take a ramp to exit a highway |
+| `fork` | Take the left/right side at a fork |
+| `end of road` | Road ends in a T intersection; turn in the modifier direction |
+| `continue` | Stay on the same road, turning in the modifier direction |
+| `roundabout` | Traverse a roundabout; `exit` counts the exit number |
+| `rotary` | A traffic circle; may carry `rotary_name`/`rotary_pronunciation` and `exit` |
+| `roundabout turn` | A turn at a small roundabout — treat as a normal turn |
+| `notification` | Not a turn, but a change in driving conditions (e.g. mode or road class) |
+| `exit roundabout` | Exit a roundabout (usually preceded by a `roundabout` instruction) |
+| `exit rotary` | Exit a rotary (large named roundabout) |
+
+Deprecated values: `ramp` (replaced by `on ramp`/`off ramp`) and `use lane` (replaced by lane data on intersection entries).
+
+**`maneuver.modifier` values:**
+
+| modifier | Description |
+| --- | --- |
+| `uturn` | Reversal of direction |
+| `sharp right` | Sharp right turn |
+| `right` | Normal right turn |
+| `slight right` | Slight right turn |
+| `straight` | No relevant change in direction |
+| `slight left` | Slight left turn |
+| `left` | Normal left turn |
+| `sharp left` | Sharp left turn |
+
+The modifier's meaning depends on `maneuver.type`: for `turn` it describes the direction change; for `depart`/`arrive` it describes the position of the departure/arrival point relative to the direction of travel. Only `depart` and `arrive` may omit the modifier (when the point lies straight ahead).
+
+### Intersections
+
+`intersections` lists every cross-way the path passes until the next turn. The first entry corresponds to the maneuver location. Bearings are given relative to the intersection — rotate a bearing by 180° to get the direction of driving.
+
+| Field | Description |
+| --- | --- |
+| `location` | Intersection position `[lng, lat]` |
+| `bearings` | Bearings of all roads at the intersection, 0–359° (0 = true north) |
+| `classes` | Road classes of the exiting roads (as defined by the profile) |
+| `entry` | Flags 1:1 with `bearings` — `true` means the road can be entered on a valid route |
+| `in` | Index into `bearings` of the road you came from; absent for `depart` |
+| `out` | Index into `bearings` of the road you take; absent for `arrive` |
+| `lanes` | Available turn lanes at the intersection (absent when there is no lane data) |
+
+### Lanes
+
+| Field | Description |
+| --- | --- |
+| `indications` | Road markings for the lane: `none`, `uturn`, `sharp right`, `right`, `slight right`, `straight`, `slight left`, `left`, `sharp left` — a lane can have several |
+| `valid` | Whether the lane is a valid choice for the current maneuver |
 
 ## Generating navigation instructions
 

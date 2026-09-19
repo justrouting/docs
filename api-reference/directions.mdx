@@ -67,25 +67,32 @@ route, err := client.Routes.Get(ctx, &justrouting.RouteRequest{
 
 ## Request Parameters
 
-### General options
+### Service options
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `overview` | string | `simplified` | `full` (full geometry) / `simplified` (display-precision geometry) / `false` (no geometry) |
+| `overview` | string | `simplified` | `full` (full geometry) / `simplified` (display-precision geometry) / `false` (no geometry) / `by_legs` (geometry split by leg) |
 | `steps` | bool | `false` | Return per-leg turn instructions (see [Turn-by-Turn](/guides/turn-by-turn)) |
 | `alternatives` | bool/int | `false` | Alternative routes; `alternatives=2` requests up to 2 (not guaranteed) |
 | `geometries` | string | `polyline` | `polyline` / `polyline6` / `geojson` |
-| `annotations` | string | `false` | Per-coordinate metadata: `distance`, `duration`, `speed`, and more |
-| `continue_straight` | string | `default` | Force straight continuation at waypoints |
+| `annotations` | string | `false` | Per-coordinate metadata along the route geometry: `true`, or a comma-separated list of `nodes`, `distance`, `duration`, `datasources`, `weight`, `speed` |
+| `continue_straight` | string | `default` | Force straight continuation at waypoints, constraining U-turns there even if it would be faster; default depends on the profile |
+| `waypoints` | string | — | Indices of input coordinates to treat as waypoints in the response, e.g. `0;3`. Default is to treat all input coordinates as waypoints |
 
-### Snapping control
+### General options
 
-| Parameter | Type | Description |
-| --- | --- | --- |
-| `bearings` | string | Restrict snapping by bearing, format `{bearing},{range};...` |
-| `radiuses` | string | Restrict snapping by radius in meters, `unlimited` for no limit |
-| `hints` | string | Reuse `hint` values from a previous response to speed up repeated requests significantly |
-| `exclude` | string | Road classes to avoid, e.g. `exclude=motorway` |
+These options apply to all routing services. Options that take one value per coordinate use the array-like encoding `{option}={element};{element}[;...]` — the number of elements must match the number of coordinates (except `generate_hints` and `exclude`). Pass an empty element to use the default for that coordinate, e.g. `bearings=;90,20;`.
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `bearings` | string | — | Limit snapping to segments with the given bearing; each element is `{value},{range}` with value 0–360° clockwise from true north and range 0–180° |
+| `radiuses` | string | — | Limit snapping to the given radius in meters per coordinate, `unlimited` for no limit |
+| `generate_hints` | bool | `true` | Add a `hint` to each response waypoint for reuse in later requests via `hints` |
+| `hints` | string | — | Base64 `hint` from a previous response; speeds up snapping significantly |
+| `approaches` | string | — | Restrict the road direction at a waypoint; per element `curb` / `opposite` / `unrestricted` (default) |
+| `exclude` | string | — | Additive list of road classes to avoid, e.g. `exclude=motorway` |
+| `snapping` | string | `default` | `any` snaps to any edge in the graph; `default` avoids edges that cannot be used as start/end points |
+| `skip_waypoints` | bool | `false` | Remove waypoints from the response (they are still calculated, just not serialized) |
 
 ### Examples
 
@@ -116,6 +123,7 @@ route, err := client.Routes.Get(ctx, &justrouting.RouteRequest{
 ```json response-example.json
 {
   "code": "Ok",
+  "data_version": "2025-06-01T21:43:02Z",
   "routes": [
     {
       "legs": [
@@ -145,14 +153,18 @@ route, err := client.Routes.Get(ctx, &justrouting.RouteRequest{
 | Field | Type | Unit | Description |
 | --- | --- | --- | --- |
 | `code` | string | — | `Ok` on success; see [Errors](/errors) otherwise |
+| `data_version` | string | — | Timestamp of the OpenStreetMap data used (optional) |
 | `routes` | array | — | Alternative routes, best first |
 | `routes[].distance` | float | **meters** | Total route distance |
 | `routes[].duration` | float | **seconds** | Estimated travel time |
 | `routes[].weight` | float | — | Routing weight (engine-internal; usually equals duration) |
+| `routes[].weight_name` | string | — | Name of the weight profile used during extraction |
 | `routes[].geometry` | string | — | Encoded polyline (precision 5) that decodes to `[lat, lng]` pairs; with `geometries=geojson` this is a GeoJSON LineString |
 | `routes[].legs` | array | — | One entry per waypoint pair; contains steps when `steps=true` |
+| `routes[].legs[].summary` | string | — | Names of the two major roads used (with `steps=true`, else empty) |
+| `routes[].legs[].annotation` | object | — | Per-coordinate metadata when `annotations` is set; see the Annotation object below |
 | `routes[].legs[].steps[]` | array | — | Turn instructions with `maneuver` (direction), `name` (street name), `distance`, `duration` |
-| `waypoints[]` | array | — | Each input coordinate snapped to the road network; `distance` is the snap offset in meters |
+| `waypoints[]` | array | — | Each input coordinate snapped to the road network; `distance` is the snap offset in meters, `hint` is reusable via the `hints` parameter |
 
 <Accordion title="Decoding geometry">
 Precision-5 polyline — decodable with any `polyline` library:
@@ -168,6 +180,31 @@ const coords = polyline.decode(route.geometry); // -> [[lat, lng], ...]
 ```
 
 Note the decoded pairs are `[lat, lng]` — the opposite order of the `lng,lat` request input.
+</Accordion>
+
+<Accordion title="Annotation object">
+When `annotations` is requested, each leg gets an `annotation` object with arrays aligned to the route geometry coordinates:
+
+| Field | Description |
+| --- | --- |
+| `distance` | Distance between each pair of coordinates, in **meters** |
+| `duration` | Duration between each pair of coordinates, in **seconds** (excludes turn costs) |
+| `weight` | Routing weight between each pair of coordinates (excludes turn costs) |
+| `speed` | Convenience field: `distance / duration` rounded to one decimal place |
+| `nodes` | OSM node id of each coordinate along the route |
+| `datasources` | Index of the speed source for each segment (`0` = the profile); names are in `metadata.datasource_names` |
+
+```json
+{
+  "distance": [5, 5, 10, 5, 5],
+  "duration": [15, 15, 40, 15, 15],
+  "weight": [15, 15, 40, 15, 15],
+  "speed": [0.3, 0.3, 0.3, 0.3, 0.3],
+  "nodes": [49772551, 49772552, 49786799, 49786800, 49786801, 49786802],
+  "datasources": [1, 0, 0, 0, 1],
+  "metadata": { "datasource_names": ["traffic", "lua profile", "lua profile", "lua profile", "traffic"] }
+}
+```
 </Accordion>
 
 <Info>

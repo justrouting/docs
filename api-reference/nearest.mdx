@@ -20,10 +20,30 @@ GET https://api.justrouting.tech/nearest/v1/{profile}/{coordinates}
 
 ## Request Parameters
 
+### Service options
+
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `number` | int | `1` | Number of nearest segments to return |
-| `bearings` | string | — | Restrict by bearing, e.g. `0,20` = true north ±20° |
+
+### General options
+
+These options apply to all routing services. Options that take one value per coordinate use the array-like encoding `{option}={element};{element}[;...]` — the number of elements must match the number of coordinates (except `generate_hints` and `exclude`). Pass an empty element to use the default for that coordinate, e.g. `bearings=;90,20;`.
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `bearings` | string | — | Limit snapping to segments with the given bearing; each element is `{value},{range}` with value 0–360° clockwise from true north and range 0–180° |
+| `radiuses` | string | — | Limit snapping to the given radius in meters per coordinate, `unlimited` for no limit |
+| `generate_hints` | bool | `true` | Add a `hint` to each response waypoint for reuse in later requests via `hints` |
+| `hints` | string | — | Base64 `hint` from a previous response; speeds up snapping significantly |
+| `approaches` | string | — | Restrict the road direction at a waypoint; per element `curb` / `opposite` / `unrestricted` (default) |
+| `exclude` | string | — | Additive list of road classes to avoid, e.g. `exclude=motorway` |
+| `snapping` | string | `default` | `any` snaps to any edge in the graph; `default` avoids edges that cannot be used as start/end points |
+| `skip_waypoints` | bool | `false` | Remove waypoints from the response (they are still calculated, just not serialized) |
+
+<Info>
+  Nearest returns only `waypoints` — with `skip_waypoints=true` the response contains just the `code` field. Technically possible, but not useful.
+</Info>
 
 ## Quickstart
 

@@ -48,15 +48,17 @@ The optimize endpoint (`/optimize`) uses `code` `0` (success), `1` (internal err
 | `NoMatch` | The trace could not be matched to roads |
 | `NoTrips` | Input coordinates are not connected — the TSP cannot be solved |
 | `TooBig` | The request exceeds service limits (e.g. too many coordinates) |
+| `DisabledDataset` | The request tried to access a disabled dataset |
+| `NotImplemented` | The request is not supported (e.g. an unsupported `roundtrip`/`source`/`destination` combination on `/trip`) |
 
 <Info>
-  On success, routing endpoints return HTTP `200` with `code: "Ok"`. Business errors live in the `code` field — don't rely on the HTTP status code alone to distinguish them.
+  On success, routing endpoints return HTTP `200` with `code: "Ok"`. Business errors live in the `code` field — don't rely on the HTTP status code alone to distinguish them. Errors carry an optional human-readable `message` field; successful `/route` responses may include `data_version`, a timestamp of the OpenStreetMap data used.
 </Info>
 
 ## FAQ
 
 <Accordion title="Why does a coordinate in the sea or inside a building still return 200?">
-We **snaps** coordinates to the nearest drivable road. `waypoints[].distance` in the response is the offset in meters from your input coordinate to the snapped point — a large value means the input coordinate is low quality.
+We snap coordinates to the nearest drivable road. `waypoints[].distance` in the response is the offset in meters from your input coordinate to the snapped point — a large value means the input coordinate is low quality.
 </Accordion>
 
 <Accordion title="Why do cross-country requests fail?">

@@ -22,14 +22,35 @@ GET https://api.justrouting.tech/table/v1/{profile}/{coordinates}
 
 ## Request Parameters
 
+### Service options
+
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
 | `sources` | string | `all` | Source indices, e.g. `sources=0` or `sources=0;1` |
 | `destinations` | string | `all` | Destination indices; combine with `sources` for cheaper asymmetric sub-matrices |
 | `annotations` | string | `duration` | `duration` / `distance` / `duration,distance` |
-| `fallback_speed` | float | — | When no route exists, estimate duration from crow-fly distance at this speed |
-| `fallback_coordinate` | string | `input` | For estimates, use `input` (original) or `snapped` coordinates |
-| `scale_factor` | float | — | Scale all durations, e.g. `1.2` = everything +20% |
+| `fallback_speed` | float | — | When no route exists, estimate the duration from the as-the-crow-flies distance at this speed |
+| `fallback_coordinate` | string | `input` | For fallback estimates, measure from `input` (user-supplied) or `snapped` coordinates |
+| `scale_factor` | float | — | Scale all duration values, e.g. `1.2` = everything +20%; use with `annotations=duration` |
+
+<Info>
+  Unlike the array-encoded general options, `sources` and `destinations` may contain fewer entries than the number of input coordinates. With `skip_waypoints=true`, both arrays are skipped in the response.
+</Info>
+
+### General options
+
+These options apply to all routing services. Options that take one value per coordinate use the array-like encoding `{option}={element};{element}[;...]` — the number of elements must match the number of coordinates (except `generate_hints` and `exclude`). Pass an empty element to use the default for that coordinate, e.g. `bearings=;90,20;`.
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `bearings` | string | — | Limit snapping to segments with the given bearing; each element is `{value},{range}` with value 0–360° clockwise from true north and range 0–180° |
+| `radiuses` | string | — | Limit snapping to the given radius in meters per coordinate, `unlimited` for no limit |
+| `generate_hints` | bool | `true` | Add a `hint` to each response source/destination waypoint for reuse in later requests via `hints` |
+| `hints` | string | — | Base64 `hint` from a previous response; speeds up snapping significantly |
+| `approaches` | string | — | Restrict the road direction at a waypoint; per element `curb` / `opposite` / `unrestricted` (default) |
+| `exclude` | string | — | Additive list of road classes to avoid, e.g. `exclude=motorway` |
+| `snapping` | string | `default` | `any` snaps to any edge in the graph; `default` avoids edges that cannot be used as start/end points |
+| `skip_waypoints` | bool | `false` | Remove `sources` and `destinations` from the response (they are still calculated, just not serialized) |
 
 ## Quickstart
 
@@ -122,6 +143,15 @@ const minutes = m.duration(0, 1); // number | null
 | Hobby | 500 × 500 |
 
 Exceeding the limit returns `400 TooBig`. For large matrices: trim to the sub-matrix you need with `sources`/`destinations`, compute in batches, and cache the results — matrices are stable and rarely need real-time recomputation.
+
+## Errors
+
+| HTTP | code | Meaning |
+| --- | --- | --- |
+| 400 | `NoTable` | No routable cell in the matrix — use `fallback_speed` as a fallback |
+| 400 | `NotImplemented` | The request is not supported |
+
+See [Errors](/errors) for the full list.
 
 ## Recipes
 
