@@ -82,7 +82,7 @@ export function RouteMap({ route }: { route: any }) {
 ## Drawing multiple routes (alternatives / fleets)
 
 - **Alternative routes**: request `alternatives=2`, iterate `data.routes[]`, give each a different color
-- **Fleet Optimization**: each `routes[i].geometry` in the response is one vehicle's route — color by vehicle
+- **Fleet Optimization**: with `"options": {"g": true}` in the optimize request, each `routes[i].geometry` in the response is one vehicle's route — color by vehicle
 
 ## Base map options
 

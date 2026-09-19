@@ -5,10 +5,16 @@ description: "Error format, HTTP status codes, and the complete error code refer
 
 ## Error response format
 
-Authentication and quota errors:
+Authentication errors (HTTP `401`) carry a single `error` string:
 
 ```json
-{ "code": "invalid_api_key", "message": "invalid or revoked API key" }
+{ "error": "missing Authorization header" }
+```
+
+Quota errors (HTTP `429`):
+
+```json
+{ "code": "rate_limited", "message": "daily request quota exceeded" }
 ```
 
 Routing endpoints (`/route`, `/table`, `/match`, `/trip`, `/nearest`) follow the OSRM convention: HTTP `400` with a `code` and an optional `message` in the body:
@@ -21,10 +27,10 @@ The optimize endpoint (`/optimize`) uses `code` `0` (success), `1` (internal err
 
 ## Authentication errors (HTTP 401)
 
-| code | Meaning | What to do |
+| error | Meaning | What to do |
 | --- | --- | --- |
-| `missing_auth` | The `Authorization` header is missing | Send `Authorization: Bearer <key>` with the request |
-| `invalid_api_key` | The key is invalid or revoked | Check the key's status in the [Dashboard](https://justrouting.tech/dashboard) |
+| `missing Authorization header` | The `Authorization` header is missing | Send `Authorization: Bearer <key>` with the request |
+| `invalid or revoked API key` | The key is invalid or revoked | Check the key's status in the [Dashboard](https://justrouting.tech/dashboard) |
 
 ## Quota errors (HTTP 429)
 

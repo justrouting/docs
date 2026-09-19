@@ -905,6 +905,16 @@
                 }
               }
             }
+          },
+          "500": {
+            "description": "Internal error (code 1) — details in the `error` field",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VroomError"
+                }
+              }
+            }
           }
         }
       }
@@ -1614,15 +1624,9 @@
       "AuthError": {
         "type": "object",
         "properties": {
-          "code": {
+          "error": {
             "type": "string",
-            "enum": [
-              "missing_auth",
-              "invalid_api_key"
-            ]
-          },
-          "message": {
-            "type": "string"
+            "description": "`missing Authorization header` or `invalid or revoked API key`."
           }
         }
       },
@@ -1702,8 +1706,7 @@
       "VroomInput": {
         "type": "object",
         "required": [
-          "vehicles",
-          "jobs"
+          "vehicles"
         ],
         "properties": {
           "vehicles": {
@@ -1718,7 +1721,7 @@
             "items": {
               "$ref": "#/components/schemas/Job"
             },
-            "description": "Tasks to serve. Free plan: up to 100; Hobby: up to 1,000."
+            "description": "Jobs to serve. Optional if `shipments` is provided. Free plan: up to 100 tasks; Hobby: up to 1,000."
           },
           "shipments": {
             "type": "array",
@@ -1729,15 +1732,13 @@
           },
           "matrices": {
             "$ref": "#/components/schemas/CustomMatrices",
-            "description": "Optional custom travel-time matrices per profile; skips OSRM table calls."
+            "description": "Custom matrices per profile; skips OSRM table calls when `durations` are provided for all used profiles."
           },
-          "geometry": {
-            "type": "boolean",
-            "default": false,
-            "description": "Add polyline geometry to each route in the response."
+          "options": {
+            "$ref": "#/components/schemas/VroomOptions",
+            "description": "Solver options; `g` maps to the VROOM `-g` flag."
           }
-        },
-        "minProperties": 1
+        }
       },
       "Vehicle": {
         "type": "object",
@@ -1755,7 +1756,7 @@
               "motorcycle"
             ],
             "default": "car",
-            "description": "Routing profile (JustRouting extension)."
+            "description": "Routing profile (defaults to `car`). JustRouting supports `car` and `motorcycle`."
           },
           "description": {
             "type": "string"
@@ -1783,14 +1784,15 @@
             "description": "Row/column in custom matrices."
           },
           "end_index": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Row/column in custom matrices."
           },
           "capacity": {
             "type": "array",
             "items": {
               "type": "integer"
             },
-            "description": "Multidimensional capacity (e.g. weight, volume)."
+            "description": "Multidimensional capacity (e.g. weight, volume); the load at each route step must stay below capacity."
           },
           "skills": {
             "type": "array",
@@ -1801,7 +1803,7 @@
           },
           "type": {
             "type": "string",
-            "description": "Vehicle type, referenced by per-type service times."
+            "description": "Vehicle type, referenced by per-type setup and service times."
           },
           "time_window": {
             "$ref": "#/components/schemas/TimeWindow"
@@ -1810,16 +1812,19 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Break"
-            }
+            },
+            "description": "Rest periods during the route."
           },
           "speed_factor": {
             "type": "number",
             "exclusiveMinimum": 0,
             "maximum": 5,
-            "description": "Scales all travel times for this vehicle."
+            "default": 1,
+            "description": "Scales all travel times for this vehicle, range `(0, 5]`, two decimals precision (defaults to 1)."
           },
           "max_tasks": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Maximum number of tasks in this vehicle's route."
           },
           "max_travel_time": {
             "type": "integer",
@@ -1837,7 +1842,7 @@
             "items": {
               "$ref": "#/components/schemas/VehicleStep"
             },
-            "description": "Custom route in plan mode, or search warm start in solving mode."
+            "description": "Custom route. In solving mode this warm-starts the search: only `job`, `pickup` and `delivery` steps are used and `service_*` keys are ignored."
           }
         }
       },
@@ -1852,7 +1857,8 @@
             "type": "integer"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "A string describing this job."
           },
           "location": {
             "type": "array",
@@ -1861,18 +1867,35 @@
             },
             "minItems": 2,
             "maxItems": 2,
-            "description": "`[lng, lat]`."
+            "description": "`[lng, lat]`. Optional if custom matrices cover all used profiles (then `location_index` is required)."
           },
           "location_index": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Row/column in custom matrices; required when custom matrices are provided."
           },
           "setup": {
             "type": "integer",
-            "description": "Setup duration in seconds."
+            "default": 0,
+            "description": "Setup duration in seconds (defaults to 0)."
           },
           "service": {
             "type": "integer",
-            "description": "Service duration in seconds."
+            "default": 0,
+            "description": "Service duration in seconds (defaults to 0)."
+          },
+          "setup_per_type": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Setup durations per vehicle type; overrides `setup` for vehicles of that type."
+          },
+          "service_per_type": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Service durations per vehicle type; overrides `service` for vehicles of that type."
           },
           "delivery": {
             "type": "array",
@@ -1892,12 +1915,14 @@
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "Skills required to serve this job; the vehicle must have all of them."
           },
           "priority": {
             "type": "integer",
             "minimum": 0,
             "maximum": 100,
+            "default": 0,
             "description": "Higher priority tasks are preferred when not all tasks fit."
           },
           "time_windows": {
@@ -1926,18 +1951,22 @@
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "Amounts loaded at the pickup and unloaded at the delivery."
           },
           "skills": {
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "Skills required to serve this shipment; the vehicle must have all of them."
           },
           "priority": {
             "type": "integer",
             "minimum": 0,
-            "maximum": 100
+            "maximum": 100,
+            "default": 0,
+            "description": "Higher priority shipments are preferred when not all tasks fit."
           }
         }
       },
@@ -1952,7 +1981,8 @@
             "type": "integer"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "A string describing this step."
           },
           "location": {
             "type": "array",
@@ -1960,19 +1990,43 @@
               "type": "number"
             },
             "minItems": 2,
-            "maxItems": 2
+            "maxItems": 2,
+            "description": "`[lng, lat]`. Optional if custom matrices cover all used profiles (then `location_index` is required)."
+          },
+          "location_index": {
+            "type": "integer",
+            "description": "Row/column in custom matrices; required when custom matrices are provided."
           },
           "setup": {
-            "type": "integer"
+            "type": "integer",
+            "default": 0,
+            "description": "Task setup duration in seconds (defaults to 0)."
           },
           "service": {
-            "type": "integer"
+            "type": "integer",
+            "default": 0,
+            "description": "Task service duration in seconds (defaults to 0)."
+          },
+          "setup_per_type": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Task setup durations per vehicle type; overrides `setup` for vehicles of that type."
+          },
+          "service_per_type": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "description": "Task service durations per vehicle type; overrides `service` for vehicles of that type."
           },
           "time_windows": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TimeWindow"
-            }
+            },
+            "description": "Valid slots for service start."
           }
         }
       },
@@ -1983,7 +2037,7 @@
         "items": {
           "type": "integer"
         },
-        "description": "`[start, end]` in seconds relative to the planning horizon, or absolute UNIX timestamps (consistent within one request)."
+        "description": "`[start, end]` in seconds relative to the planning horizon, or absolute UNIX timestamps (consistent within one request). Both ends are inclusive."
       },
       "Break": {
         "type": "object",
@@ -1998,20 +2052,24 @@
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/TimeWindow"
-            }
+            },
+            "description": "Valid slots for break start."
           },
           "service": {
             "type": "integer",
-            "description": "Break duration in seconds."
+            "default": 0,
+            "description": "Break duration in seconds (defaults to 0)."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "A string describing this break."
           },
           "max_load": {
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "Maximum vehicle load for which this break can happen."
           }
         }
       },
@@ -2020,19 +2078,23 @@
         "properties": {
           "fixed": {
             "type": "integer",
-            "default": 0
+            "default": 0,
+            "description": "Cost of using this vehicle in the solution (defaults to 0)."
           },
           "per_hour": {
             "type": "integer",
-            "default": 3600
+            "default": 3600,
+            "description": "Cost for one hour of travel time (defaults to 3600)."
           },
           "per_task_hour": {
             "type": "integer",
-            "default": 0
+            "default": 0,
+            "description": "Cost for one hour of task time, setup + service (defaults to 0)."
           },
           "per_km": {
             "type": "integer",
-            "default": 0
+            "default": 0,
+            "description": "Cost for one kilometer of travel (defaults to 0)."
           }
         }
       },
@@ -2051,25 +2113,30 @@
               "delivery",
               "break",
               "end"
-            ]
+            ],
+            "description": "Step type."
           },
           "id": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Task id for `job`, `pickup`, `delivery` or `break` steps."
           },
           "service_at": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Hard constraint on service time (plan mode only)."
           },
           "service_after": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Hard constraint on service time lower bound (plan mode only)."
           },
           "service_before": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Hard constraint on service time upper bound (plan mode only)."
           }
         }
       },
       "CustomMatrices": {
         "type": "object",
-        "description": "Per-profile custom matrices. Providing durations for all profiles makes task locations optional.",
+        "description": "Per-profile custom matrices (`durations`, `distances`, `costs`). Providing `durations` for all used profiles makes `location`, `start` and `end` optional; use the `*_index` keys instead.",
         "additionalProperties": {
           "type": "object",
           "properties": {
@@ -2080,7 +2147,8 @@
                 "items": {
                   "type": "integer"
                 }
-              }
+              },
+              "description": "Custom travel-time matrix used for all timing checks."
             },
             "distances": {
               "type": "array",
@@ -2089,7 +2157,8 @@
                 "items": {
                   "type": "integer"
                 }
-              }
+              },
+              "description": "Custom distance matrix; requires `durations`."
             },
             "costs": {
               "type": "array",
@@ -2098,8 +2167,19 @@
                 "items": {
                   "type": "integer"
                 }
-              }
+              },
+              "description": "Custom cost matrix used in all route cost evaluations."
             }
+          }
+        }
+      },
+      "VroomOptions": {
+        "type": "object",
+        "properties": {
+          "g": {
+            "type": "boolean",
+            "default": false,
+            "description": "Add polyline geometry (and distances) to each route in the response. Same effect as VROOM's `-g` flag."
           }
         }
       },
@@ -2132,13 +2212,18 @@
                   "type": "integer"
                 },
                 "type": {
-                  "type": "string"
+                  "type": "string",
+                  "description": "`job`, `pickup` or `delivery`."
                 },
                 "location": {
                   "type": "array",
                   "items": {
                     "type": "number"
                   }
+                },
+                "location_index": {
+                  "type": "integer",
+                  "description": "Row/column in custom matrices, if provided in input."
                 },
                 "description": {
                   "type": "string"
@@ -2158,51 +2243,61 @@
         "type": "object",
         "properties": {
           "cost": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Total cost for all routes."
           },
           "routes": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Number of routes in the solution."
           },
           "unassigned": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Number of tasks that could not be served."
           },
           "setup": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Total setup time for all routes."
           },
           "service": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Total service time for all routes."
           },
           "duration": {
             "type": "integer",
             "description": "Total travel time in seconds."
           },
           "waiting_time": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Total waiting time for all routes."
           },
           "priority": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Total priority sum for all assigned tasks."
           },
           "distance": {
             "type": "integer",
-            "description": "Total distance in meters (when requested)."
+            "description": "Total distance in meters (with `options.g` or distance matrices)."
           },
           "delivery": {
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "Total delivery for all routes."
           },
           "pickup": {
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "Total pickup for all routes."
           },
           "violations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Violation"
-            }
+            },
+            "description": "Violation objects for all routes."
           }
         }
       },
@@ -2218,7 +2313,8 @@
               "delivery",
               "break",
               "end"
-            ]
+            ],
+            "description": "Step type: `start`, `job`, `pickup`, `delivery`, `break` or `end`."
           },
           "id": {
             "type": "integer",
@@ -2233,24 +2329,31 @@
             "description": "Cumulated travel time in seconds."
           },
           "setup": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Setup time at this step."
           },
           "service": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Service time at this step."
           },
           "waiting_time": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Waiting time upon arrival at this step."
           },
           "distance": {
             "type": "integer",
-            "description": "Cumulated distance in meters (when requested)."
+            "description": "Cumulated distance in meters (with `options.g`)."
           },
           "location": {
             "type": "array",
             "items": {
               "type": "number"
             },
-            "description": "[lng, lat]."
+            "description": "`[lng, lat]`, if provided in input."
+          },
+          "location_index": {
+            "type": "integer",
+            "description": "Row/column in custom matrices, if provided in input."
           },
           "load": {
             "type": "array",
@@ -2260,13 +2363,15 @@
             "description": "Vehicle load after this step."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Step description, if provided in input."
           },
           "violations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Violation"
-            }
+            },
+            "description": "Violation objects for this step."
           }
         }
       },
@@ -2286,10 +2391,12 @@
               "max_travel_time",
               "max_distance",
               "max_load"
-            ]
+            ],
+            "description": "Violation cause."
           },
           "duration": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Earliness (resp. lateness) if `cause` is `lead_time` (resp. `delay`)."
           }
         }
       },
@@ -2308,61 +2415,72 @@
         "type": "object",
         "properties": {
           "vehicle": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Id of the vehicle assigned to this route."
           },
           "cost": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Cost for this route."
           },
           "setup": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Total setup time for this route."
           },
           "service": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Total service time for this route."
           },
           "duration": {
             "type": "integer",
             "description": "Travel time in seconds."
           },
           "waiting_time": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Total waiting time for this route."
           },
           "priority": {
-            "type": "integer"
+            "type": "integer",
+            "description": "Total priority sum for tasks in this route."
           },
           "distance": {
             "type": "integer",
-            "description": "Meters (when requested)."
+            "description": "Meters (with `options.g` or distance matrices)."
           },
           "geometry": {
             "type": "string",
-            "description": "Encoded polyline (when geometry: true)."
+            "description": "Encoded polyline (when `options.g` is true)."
           },
           "delivery": {
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "Total delivery for tasks in this route."
           },
           "pickup": {
             "type": "array",
             "items": {
               "type": "integer"
-            }
+            },
+            "description": "Total pickup for tasks in this route."
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "description": "Vehicle description, if provided in input."
           },
           "steps": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Step"
-            }
+            },
+            "description": "Route steps."
           },
           "violations": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/Violation"
-            }
+            },
+            "description": "Violation objects for this route."
           }
         }
       }

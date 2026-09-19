@@ -215,7 +215,7 @@ When `annotations` is requested, each leg gets an `annotation` object with array
 
 | HTTP | code | Meaning |
 | --- | --- | --- |
-| 401 | `missing_auth` / `invalid_api_key` | Authentication failed, see [Authentication](/authentication) |
+| 401 | — | Authentication failed (`error` field in the body), see [Authentication](/authentication) |
 | 400 | `NoRoute` | No route between the points |
 | 400 | `NoSegment` | A coordinate could not be snapped to a road |
 | 400 | `TooBig` | More than 100 coordinates |

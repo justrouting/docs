@@ -9,6 +9,10 @@ Multi-vehicle route optimization (VRP) powered by [VROOM](https://github.com/VRO
   **Try it first?** Switch the [Live Demo](https://justrouting.tech) to the Fleet Optimization tab: two vehicles, six tasks, one API call to assign and sequence everything.
 </Tip>
 
+<Info>
+  **Conventions.** Coordinates are `[lng, lat]`. All timings are in seconds, all distances in meters. A `time_window` is a `[start, end]` pair with both ends inclusive. A "task" is either a job, a pickup or a delivery.
+</Info>
+
 ## Endpoint
 
 ```
@@ -62,53 +66,195 @@ for route in solution.routes:
 ```
 </CodeGroup>
 
-## Input: vehicles and tasks
+## Input structure
 
-### Vehicle
+The request body is a JSON object. Only `vehicles` is required.
 
-| Field | Type | Description |
+| Key | Type | Description |
 | --- | --- | --- |
-| `id` | int | Required, vehicle number |
-| `profile` | string | `car` (default) or `motorcycle` |
-| `start` / `end` | `[lng, lat]` | Start/end depot; omit `end` to stop at the last task; same values = round trip |
-| `capacity` | int[] | Multi-dimensional capacity (e.g. `[weight, volume]`) |
-| `skills` | int[] | Vehicle skills — a job's `skills` must be a subset |
-| `time_window` | `[start, end]` | Working hours |
-| `breaks` | array | Rest periods |
-| `speed_factor` | float | Scales all travel times for this vehicle, range `(0, 5]`, two decimals precision |
-| `costs` | object | `fixed` / `per_hour` / `per_km` cost weights |
-
-### Job
-
-| Field | Type | Description |
-| --- | --- | --- |
-| `id` | int | Required, task number (unique among jobs/shipments) |
-| `location` | `[lng, lat]` | Required, task position |
-| `setup` / `service` | int | Setup/service durations in seconds |
-| `delivery` / `pickup` | int[] | Amounts to unload/load (paired with vehicle `capacity`) |
-| `skills` | int[] | Skills required to serve this task |
-| `priority` | int | `0-100`; higher-priority tasks are preferred when not everything fits |
-| `time_windows` | `[[start, end], ...]` | Valid slots for service start |
-
-There are also `shipments` (pickup-then-delivery pairs) and more advanced fields — the full schema is in the **OpenAPI → optimize** section (auto-generated three-panel pages).
-
-<Info>
-  Time windows accept **relative seconds** or **absolute UNIX timestamps** — just be consistent within one request.
-</Info>
-
-## Getting route geometry back
-
-Add `"geometry": true` to the request body — a top-level field, next to `vehicles` and `jobs`:
+| `vehicles` | array | **Required.** Vehicles available for the problem (Free: 10, Hobby: 50). |
+| `jobs` | array | Point tasks to visit. Optional if `shipments` is provided. |
+| `shipments` | array | Pickup-and-delivery pairs, pickup first. |
+| `matrices` | object | Custom matrices per profile, see [Custom matrices](#custom-matrices). |
+| `options` | object | Solver options; `options.g: true` adds route geometry, see [Getting route geometry back](#getting-route-geometry-back). |
 
 ```json request-body.json
 {
   "vehicles": [ ... ],
   "jobs": [ ... ],
-  "geometry": true
+  "shipments": [ ... ],
+  "matrices": { ... },
+  "options": { "g": true }
 }
 ```
 
-Every route in the response then carries a polyline:
+<Info>
+  A problem with `shipments` only (no `jobs`) is valid.
+</Info>
+
+## Vehicles
+
+### Vehicle fields
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | int | — | Required, unique vehicle id. |
+| `profile` | string | `car` | `car` or `motorcycle` (JustRouting restriction; upstream VROOM accepts any profile). |
+| `description` | string | | Free-form description, echoed in the response. |
+| `start` | `[lng, lat]` | | Start depot, see [Start and end](#start-and-end). |
+| `start_index` | int | | Row/column in custom matrices. |
+| `end` | `[lng, lat]` | | End depot; same as `start` for a round trip. |
+| `end_index` | int | | Row/column in custom matrices. |
+| `capacity` | int[] | | Multidimensional capacity (e.g. weight, volume); the load at each route step must stay below capacity. |
+| `skills` | int[] | `[]` | Vehicle skills; a task's `skills` must be a subset. |
+| `type` | string | | Vehicle type, referenced by per-type setup/service overrides. |
+| `time_window` | `[start, end]` | | Working hours. |
+| `breaks` | array | | Rest periods, see [Breaks](#breaks). |
+| `speed_factor` | float | `1` | Scales all travel times for this vehicle, range `(0, 5]`, two decimals precision. |
+| `max_tasks` | int | | Maximum number of tasks in this vehicle's route. |
+| `max_travel_time` | int | | Maximum travel time in seconds. |
+| `max_distance` | int | | Maximum distance in meters. |
+| `costs` | object | | Cost weights, see [Vehicle costs](#vehicle-costs). |
+| `steps` | array | | Custom route used to warm-start the search, see [Vehicle steps](#vehicle-steps-warm-start). |
+
+### Vehicle costs
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `fixed` | int | `0` | Cost of using this vehicle in the solution. |
+| `per_hour` | int | `3600` | Cost for one hour of travel time. |
+| `per_task_hour` | int | `0` | Cost for one hour of task time (setup + service). |
+| `per_km` | int | `0` | Cost for one kilometer of travel. |
+
+<Warning>
+  A non-default `per_hour` defines travel costs from travel times, so combining it with a custom `costs` matrix for the same vehicle is inconsistent and returns an error.
+</Warning>
+
+### Breaks
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | int | — | Required, unique among this vehicle's breaks. |
+| `time_windows` | `[[start, end], ...]` | | Valid slots for break start. |
+| `service` | int | `0` | Break duration in seconds. |
+| `description` | string | | Free-form description. |
+| `max_load` | int[] | | Maximum vehicle load for which this break can happen. |
+
+### Start and end
+
+<Info>
+  - `start` and `end` are both optional, as long as at least one of them is present.
+  - If `end` is omitted, the route stops at the last visited task, chosen by the optimization process.
+  - If `start` is omitted, the route starts at the first visited task, chosen by the optimization process.
+  - Same coordinates for `start` and `end` = round trip.
+</Info>
+
+## Jobs
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | int | — | Required, unique among jobs. |
+| `description` | string | | Free-form description, echoed in the response. |
+| `location` | `[lng, lat]` | — | Task position; optional if custom matrices cover all used profiles (then `location_index` is required). |
+| `location_index` | int | | Row/column in custom matrices. |
+| `setup` | int | `0` | Setup duration in seconds. |
+| `service` | int | `0` | Service duration in seconds. |
+| `setup_per_type` | object | | Setup durations per vehicle type; overrides `setup` for vehicles of that type. |
+| `service_per_type` | object | | Service durations per vehicle type; overrides `service` for vehicles of that type. |
+| `delivery` | int[] | | Amounts to deliver; assumed loaded at vehicle start. |
+| `pickup` | int[] | | Amounts to pick up; assumed brought back at vehicle end. |
+| `skills` | int[] | `[]` | Skills required; the vehicle must have all of them. |
+| `priority` | int | `0` | `0-100`; higher-priority tasks are preferred when not everything fits. |
+| `time_windows` | `[[start, end], ...]` | | Valid slots for service start. |
+
+An error is returned if two jobs share the same `id`.
+
+## Shipments
+
+A shipment is a pickup and a delivery performed by the same vehicle, pickup first.
+
+### Shipment fields
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `pickup` | object | — | Required, a shipment step. |
+| `delivery` | object | — | Required, a shipment step. |
+| `amount` | int[] | | Amounts loaded at the pickup and unloaded at the delivery. |
+| `skills` | int[] | `[]` | Skills required; the vehicle must have all of them. |
+| `priority` | int | `0` | `0-100`; higher-priority shipments are preferred when not everything fits. |
+
+### Shipment steps
+
+Same fields as a job, minus the shared keys above:
+
+| Field | Type | Default | Description |
+| --- | --- | --- | --- |
+| `id` | int | — | Required, unique among pickups / among deliveries. |
+| `description` | string | | Free-form description. |
+| `location` | `[lng, lat]` | — | Step position; optional if custom matrices cover all used profiles. |
+| `location_index` | int | | Row/column in custom matrices. |
+| `setup` | int | `0` | Setup duration in seconds. |
+| `service` | int | `0` | Service duration in seconds. |
+| `setup_per_type` | object | | Setup durations per vehicle type. |
+| `service_per_type` | object | | Service durations per vehicle type. |
+| `time_windows` | `[[start, end], ...]` | | Valid slots for service start. |
+
+```json shipment-example.json
+{
+  "vehicles": [
+    { "id": 1, "profile": "car", "start": [103.79234106, 1.32463108], "end": [103.79234106, 1.32463108] }
+  ],
+  "shipments": [
+    {
+      "pickup": { "id": 1, "location": [103.79751693, 1.31035001], "service": 300 },
+      "delivery": { "id": 2, "location": [103.78432387, 1.31490148], "service": 300 },
+      "amount": [50]
+    }
+  ]
+}
+```
+
+## Custom matrices
+
+Provide your own travel-time, distance or cost matrices per profile. Providing `durations` for all used profiles skips the OSRM table calls entirely:
+
+```json matrices.json
+{
+  "vehicles": [
+    { "id": 1, "profile": "car", "start_index": 0 }
+  ],
+  "jobs": [
+    { "id": 1, "location_index": 1, "location": [103.79751693, 1.31035001] }
+  ],
+  "matrices": {
+    "car": {
+      "durations": [[0, 14], [21, 0]],
+      "distances": [[0, 1500], [1500, 0]]
+    },
+    "motorcycle": {
+      "durations": [[0, 11], [18, 0]]
+    }
+  }
+}
+```
+
+- With custom matrices, `location_index` (tasks) and `start_index` / `end_index` (vehicles) become mandatory. `location`, `start` and `end` become optional but are echoed in the response when provided.
+- `durations` are used for all checks against timing constraints; `distances` require `durations`; `costs` are used in all route cost evaluations.
+- With `durations` but no `distances`, distances are fetched from the routing engine when needed (`options.g` or a non-zero `per_km` cost).
+
+## Getting route geometry back
+
+Set `"options": { "g": true }` — a top-level field, next to `vehicles` and `jobs`:
+
+```json request-body.json
+{
+  "vehicles": [ ... ],
+  "jobs": [ ... ],
+  "options": { "g": true }
+}
+```
+
+Every route in the response then carries a polyline and distance:
 
 ```json response-example.json
 {
@@ -131,14 +277,109 @@ Every route in the response then carries a polyline:
 }
 ```
 
-### Response essentials
+`options.g` is the JSON equivalent of upstream VROOM's `-g` CLI flag.
+
+## Response
+
+The response is a JSON object with `code`, optionally `error`, and — on success — `summary`, `routes` and `unassigned`.
+
+### Status codes
+
+| Code | HTTP | Meaning |
+| --- | --- | --- |
+| `0` | 200 | Success. |
+| `1` | 500 | Internal error. |
+| `2` | 400 | Input error. |
+| `3` | 400 | Routing error (no feasible solution). |
+
+The `error` field is present if and only if `code` is different from `0`. See [Errors](/errors) for details.
+
+### Summary
 
 | Field | Description |
 | --- | --- |
-| `code` | `0` success; `2` input error; `3` routing error — details in the `error` field |
-| `summary` | Total cost, route count, unassigned count, total duration/distance |
-| `routes[].steps[]` | Visit order: `start` → `job`/`pickup`/`delivery`/`break` → `end`, each with `arrival` |
-| `unassigned` | Tasks that could not be served and why (capacity/time-window conflicts, etc.) |
+| `cost` | Total cost for all routes. |
+| `routes` | Number of routes in the solution. |
+| `unassigned` | Number of tasks that could not be served. |
+| `setup` | Total setup time for all routes. |
+| `service` | Total service time for all routes. |
+| `duration` | Total travel time for all routes. |
+| `waiting_time` | Total waiting time for all routes. |
+| `priority` | Total priority sum for all assigned tasks. |
+| `delivery` | Total delivery for all routes. |
+| `pickup` | Total pickup for all routes. |
+| `distance` | Total distance for all routes (with `options.g` or distance matrices). |
+| `violations` | Violation objects for all routes. |
+
+### Routes
+
+| Field | Description |
+| --- | --- |
+| `vehicle` | Id of the vehicle assigned to this route. |
+| `steps` | Array of steps, see below. |
+| `cost` | Cost for this route. |
+| `setup` | Total setup time for this route. |
+| `service` | Total service time for this route. |
+| `duration` | Total travel time for this route. |
+| `waiting_time` | Total waiting time for this route. |
+| `priority` | Total priority sum for tasks in this route. |
+| `delivery` | Total delivery for tasks in this route. |
+| `pickup` | Total pickup for tasks in this route. |
+| `description` | Vehicle description, if provided in input. |
+| `geometry` | Encoded polyline for this route (with `options.g: true`). |
+| `distance` | Total route distance in meters (with `options.g` or distance matrices). |
+| `violations` | Violation objects for this route. |
+
+### Steps
+
+Each step is one element of the visit order: `start` → `job`/`pickup`/`delivery`/`break` → `end`.
+
+| Field | Description |
+| --- | --- |
+| `type` | `start`, `job`, `pickup`, `delivery`, `break` or `end`. |
+| `arrival` | Estimated time of arrival at this step (same clock as the input). |
+| `duration` | Cumulated travel time upon arrival at this step. |
+| `setup` | Setup time at this step. |
+| `service` | Service time at this step. |
+| `waiting_time` | Waiting time upon arrival at this step. |
+| `id` | Id of the task performed at this step (only for `job`/`pickup`/`delivery`/`break`). |
+| `load` | Vehicle load after step completion (with capacity constraints). |
+| `distance` | Cumulated distance upon arrival at this step (with `options.g`). |
+| `location` | `[lng, lat]` for this step, if provided in input. |
+| `location_index` | Row/column in custom matrices, if provided in input. |
+| `description` | Step description, if provided in input. |
+| `violations` | Violation objects for this step. |
+
+### Unassigned
+
+| Field | Description |
+| --- | --- |
+| `id` | Id of the unassigned task. |
+| `type` | `job`, `pickup` or `delivery`. |
+| `description` | Task description, if provided in input. |
+| `location` | `[lng, lat]`, if provided in input. |
+| `location_index` | Row/column in custom matrices, if provided in input. |
+
+### Violations
+
+A violation object has a `cause` and, for `lead_time`/`delay`, a `duration` in seconds.
+
+| Cause | Meaning |
+| --- | --- |
+| `delay` | Service starts after the task's time window end. |
+| `lead_time` | Service starts before the task's time window start. |
+| `load` | Vehicle load goes over its capacity. |
+| `max_tasks` | Route has more tasks than the vehicle's `max_tasks`. |
+| `skills` | Vehicle does not hold all skills required by a task. |
+| `precedence` | Shipment precedence not met (pickup without matching delivery, delivery before/without pickup). |
+| `missing_break` | A vehicle break has been omitted in its custom route. |
+| `max_travel_time` | Travel time over the vehicle's `max_travel_time`. |
+| `max_distance` | Distance over the vehicle's `max_distance`. |
+| `max_load` | Load during a break exceeds its `max_load`. |
+
+<Info>
+  In regular solving — the only mode the hosted API exposes — `violations` arrays are always empty. Upstream VROOM reports violations when choosing ETAs for custom routes (plan mode, `-c`).
+</Info>
 
 ## Time Windows
 
@@ -149,6 +390,36 @@ A task's `time_windows` constrain when its service **starts**; early arrivals wa
 - Relative: `[0, 14400]` = within 4 hours of the planning horizon start
 - Absolute: real UNIX timestamps — then `arrival` values in the output are timestamps too
 
+## Semantics notes
+
+<Accordion title="Task locations and custom matrices">
+  With custom matrices, `location_index` is mandatory and `location` is optional (but echoed in the response when provided). Without custom matrices, a `table` call goes to OSRM: `location` is mandatory and `location_index` is irrelevant.
+</Accordion>
+
+<Accordion title="Capacity restrictions">
+  Amounts are multidimensional — vehicles carry `capacity`, jobs `delivery`/`pickup`, shipments `amount`. A vehicle may serve a set of tasks only if the resulting load at each route step stays below `capacity` for each metric. All job deliveries are assumed loaded at vehicle start; all job pickups are assumed brought back at vehicle end. When using multiple components, put the most limiting metric first.
+</Accordion>
+
+<Accordion title="Skills">
+  A task is eligible for a vehicle if and only if the task's `skills` set is included in the vehicle's `skills`. A task without skills can be served by any vehicle; a vehicle without skills can only serve tasks without skills. Omitting `skills` defaults to an empty array.
+</Accordion>
+
+<Accordion title="Task priorities">
+  `priority` is an integer in `[0, 100]` (default `0`). Useful when not all tasks can be performed: higher-priority tasks are included in the solution over lower-priority ones.
+</Accordion>
+
+<Accordion title="Setup times">
+  Setup models the time it takes to get started at a location, and is not re-applied for consecutive tasks at the same place: the total action time is `setup + service` on arriving at a new location, but only `service` for another task at the previous vehicle location.
+</Accordion>
+
+<Accordion title="Task times per vehicle type">
+  For a vehicle with `type` `t`, the actual service time for a task is `service_per_type[t]` if provided, otherwise the task's `service`. The same applies to `setup_per_type` and `setup`.
+</Accordion>
+
+<Accordion title="Vehicle steps (warm start)">
+  Providing `steps` for a vehicle in solving mode forces the search to start from your route as a single search path, instead of several concurrent searches. Only steps with `type` `job`, `pickup` or `delivery` are used; `service_*` keys are ignored; an error is returned if the provided route violates any constraint. Plan-mode ETA selection (`-c` in upstream VROOM) is not exposed by the hosted API.
+</Accordion>
+
 ## Size limits
 
 | Plan | Vehicles / tasks |
@@ -156,7 +427,17 @@ A task's `time_windows` constrain when its service **starts**; early arrivals wa
 | Free | 10 / 100 |
 | Hobby | 50 / 1,000 |
 
+"Tasks" counts jobs plus shipment steps.
+
+## JustRouting extensions and compatibility
+
+- `profile` is restricted to `car` and `motorcycle` — upstream profiles like `bike` are not available.
+- `options` is the JSON equivalent of VROOM's CLI flags; only `g` (route geometry) is currently supported.
+- Deprecated upstream keys are not supported: `job.amount` (use `delivery`/`pickup`), the top-level `matrix` (use `matrices`), `step.job` (use `step.id`), `summary.amount` (use `summary.delivery`/`summary.pickup`).
+- The **OpenAPI → optimize** pages hold the complete, machine-readable schema.
+
 ## Related
 
 - [Distance Matrix](/api-reference/distance-matrix) — compute matrices for your own solvers
+- [Errors](/errors) — error codes and formats
 - [VROOM API docs](https://github.com/VROOM-Project/vroom/blob/master/docs/API.md) — the upstream full input/output schema (our hosted version is compatible)
