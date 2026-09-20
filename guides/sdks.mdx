@@ -57,6 +57,7 @@ const client = new Client('YOUR_API_KEY', { timeout: 10 });
 const route = await client.routes.get({
   origin: [103.708362, 1.357371],
   destination: [103.984748, 1.352212],
+  overview: "full",
 });
 
 console.log(`Distance: ${(route.distance / 1000).toFixed(1)} km`);
@@ -66,18 +67,35 @@ console.log(`Duration: ${Math.round(route.duration / 60)} min`);
 ## Go example
 
 ```go
-client := justrouting.NewClient("YOUR_API_KEY",
-    justrouting.WithHTTPClient(&http.Client{Timeout: 10 * time.Second}),
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "net/http"
+    "time"
+
+    justrouting "github.com/justrouting/go-client"
 )
 
-route, err := client.Routes.Get(ctx, &justrouting.RouteRequest{
-    Origin:      []float64{103.708362, 1.357371},
-    Destination: []float64{103.984748, 1.352212},
-})
-if err != nil {
-    log.Fatal(err)
+func main() {
+    client := justrouting.NewClient("YOUR_API_KEY",
+        justrouting.WithHTTPClient(&http.Client{Timeout: 10 * time.Second}),
+    )
+
+    route, err := client.Routes.Get(context.Background(), &justrouting.RouteRequest{
+        Origin:      []float64{103.708362, 1.357371},
+        Destination: []float64{103.984748, 1.352212},
+        Overview:    "full",
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    fmt.Printf("Distance: %.1f km\n", route.Distance/1000)
+    fmt.Printf("Duration: %.0f min\n", route.Duration/60)
 }
-fmt.Printf("Distance: %.1f km\n", route.Distance/1000)
 ```
 
 ## No SDK? No problem
