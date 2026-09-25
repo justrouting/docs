@@ -35,6 +35,7 @@
           "api-reference/map-matching",
           "api-reference/trip",
           "api-reference/nearest",
+          "api-reference/geocode",
           "api-reference/fleet-optimization"
         ]
       },
@@ -47,6 +48,7 @@
           "openapi.json GET /match/v1/{profile}/{coordinates}",
           "openapi.json GET /trip/v1/{profile}/{coordinates}",
           "openapi.json GET /nearest/v1/{profile}/{coordinates}",
+          "openapi.json GET /geocode/v1/search",
           "openapi.json POST /optimize"
         ]
       },

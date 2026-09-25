@@ -45,6 +45,10 @@
     {
       "name": "optimize",
       "description": "Hosted VROOM vehicle routing solver"
+    },
+    {
+      "name": "geocode",
+      "description": "Forward geocoding: place name or address into coordinates"
     }
   ],
   "paths": {
@@ -912,6 +916,213 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VroomError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/geocode/v1/search": {
+      "get": {
+        "tags": [
+          "geocode"
+        ],
+        "summary": "Find a place by name or address and get its coordinates",
+        "operationId": "getGeocode",
+        "x-mint": {
+          "metadata": {
+            "title": "geocode",
+            "sidebarTitle": "geocode",
+            "description": "Find a place by name or address and get its coordinates"
+          }
+        },
+        "parameters": [
+          {
+            "name": "text",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Free-form address to search, e.g. `Marina Bay Sands, Singapore`. Mutually exclusive with the structured fields."
+          },
+          {
+            "name": "name",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Name of the place, e.g. `Marina Bay Sands`."
+          },
+          {
+            "name": "housenumber",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "House or building number, e.g. `10`."
+          },
+          {
+            "name": "street",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Street name, e.g. `Bayfront Avenue`."
+          },
+          {
+            "name": "postcode",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Postal code, e.g. `018956`."
+          },
+          {
+            "name": "city",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "City or locality, e.g. `Singapore`."
+          },
+          {
+            "name": "state",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "State or region."
+          },
+          {
+            "name": "country",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Country, e.g. `Singapore` — the strongest disambiguator for common, abbreviated, or misspelled names."
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 5
+            },
+            "description": "Maximum number of results to return."
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "default": 0
+            },
+            "description": "Skip the first `offset` results before applying `limit`."
+          },
+          {
+            "name": "filter",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Restrict results, e.g. `countrycode:sg`; repeatable, all filters apply."
+          },
+          {
+            "name": "bias",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Steer results toward a location, e.g. `proximity:103.8,1.3`; adds a `distance` field to each result."
+          },
+          {
+            "name": "type",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Restrict to a feature type, e.g. `street` or `city`."
+          },
+          {
+            "name": "lang",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            },
+            "description": "Preferred language for results, e.g. `en`."
+          },
+          {
+            "name": "format",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "json"
+            },
+            "description": "Response format; `json` is the only documented value."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching places, ordered by relevance",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeocodeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters; the upstream error body is passed through",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Missing or invalid API key",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Rate limited",
+            "headers": {
+              "Retry-After": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Seconds to wait before retrying"
+              },
+              "X-RateLimit-Remaining": {
+                "schema": {
+                  "type": "integer"
+                },
+                "description": "Requests remaining today"
+              }
+            },
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RateLimitError"
+                }
+              }
+            }
+          },
+          "502": {
+            "description": "Geocoding provider unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpstreamError"
                 }
               }
             }
@@ -2481,6 +2692,221 @@
               "$ref": "#/components/schemas/Violation"
             },
             "description": "Violation objects for this route."
+          }
+        }
+      },
+      "GeocodeResponse": {
+        "type": "object",
+        "properties": {
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GeocodeResult"
+            },
+            "description": "Matching places, ordered by relevance (best first); empty when nothing matches."
+          },
+          "query": {
+            "$ref": "#/components/schemas/GeocodeQuery",
+            "description": "Echo of how the API interpreted the request."
+          }
+        }
+      },
+      "GeocodeResult": {
+        "type": "object",
+        "properties": {
+          "datasource": {
+            "$ref": "#/components/schemas/Datasource"
+          },
+          "name": {
+            "type": "string"
+          },
+          "housenumber": {
+            "type": "string"
+          },
+          "street": {
+            "type": "string"
+          },
+          "suburb": {
+            "type": "string"
+          },
+          "district": {
+            "type": "string"
+          },
+          "postcode": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "county": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string"
+          },
+          "country_code": {
+            "type": "string",
+            "description": "ISO 3166-1 alpha-2 country code."
+          },
+          "lon": {
+            "type": "number",
+            "description": "Longitude, in the same `lng,lat` order used by the routing APIs."
+          },
+          "lat": {
+            "type": "number",
+            "description": "Latitude."
+          },
+          "formatted": {
+            "type": "string",
+            "description": "Full, human-readable address."
+          },
+          "address_line1": {
+            "type": "string"
+          },
+          "address_line2": {
+            "type": "string"
+          },
+          "category": {
+            "type": "string"
+          },
+          "result_type": {
+            "type": "string",
+            "description": "Feature type, e.g. `amenity`, `building`, `street`."
+          },
+          "rank": {
+            "$ref": "#/components/schemas/Rank"
+          },
+          "timezone": {
+            "$ref": "#/components/schemas/Timezone"
+          },
+          "plus_code": {
+            "type": "string"
+          },
+          "place_id": {
+            "type": "string",
+            "description": "Opaque identifier for the place."
+          },
+          "bbox": {
+            "$ref": "#/components/schemas/BBox"
+          },
+          "distance": {
+            "type": "number",
+            "description": "Meters from the bias location; present only when `bias` is set."
+          }
+        }
+      },
+      "GeocodeQuery": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "Free-text query as received by the API."
+          },
+          "parsed": {
+            "type": "object",
+            "description": "The API's structured interpretation of the query."
+          }
+        }
+      },
+      "Datasource": {
+        "type": "object",
+        "properties": {
+          "sourcename": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": "string"
+          },
+          "license": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string"
+          }
+        }
+      },
+      "Rank": {
+        "type": "object",
+        "properties": {
+          "importance": {
+            "type": "number"
+          },
+          "popularity": {
+            "type": "number"
+          },
+          "confidence": {
+            "type": "number"
+          },
+          "confidence_city_level": {
+            "type": "number"
+          },
+          "confidence_street_level": {
+            "type": "number"
+          },
+          "match_type": {
+            "type": "string"
+          }
+        }
+      },
+      "Timezone": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "IANA time zone name."
+          },
+          "offset_STD": {
+            "type": "string"
+          },
+          "offset_DST": {
+            "type": "string"
+          },
+          "offset_STD_seconds": {
+            "type": "integer"
+          },
+          "offset_DST_seconds": {
+            "type": "integer"
+          },
+          "abbreviation_STD": {
+            "type": "string"
+          },
+          "abbreviation_DST": {
+            "type": "string"
+          }
+        }
+      },
+      "BBox": {
+        "type": "object",
+        "properties": {
+          "lon1": {
+            "type": "number"
+          },
+          "lat1": {
+            "type": "number"
+          },
+          "lon2": {
+            "type": "number"
+          },
+          "lat2": {
+            "type": "number"
+          }
+        },
+        "description": "Bounding box as `[lon1, lat1, lon2, lat2]`."
+      },
+      "UpstreamError": {
+        "type": "object",
+        "properties": {
+          "statusCode": {
+            "type": "integer"
+          },
+          "error": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
           }
         }
       }

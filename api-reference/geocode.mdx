@@ -1,0 +1,264 @@
+---
+title: "Geocode API"
+description: "Convert a place name or address into coordinates — longitude, latitude, and address details."
+---
+
+Geocode API converts a place name or address into coordinates. Send free-form text like `Marina Bay Sands, Singapore`, or a structured address with typed components; results come back ordered by relevance, each with `lon`/`lat` that plug directly into the `coordinates` of Directions and the other routing APIs.
+
+## Endpoint
+
+```
+GET https://api.justrouting.tech/geocode/v1/search
+```
+
+## Quickstart
+
+<CodeGroup>
+```bash curl
+curl "https://api.justrouting.tech/geocode/v1/search?text=Marina%20Bay%20Sands%2C%20Singapore&limit=1" \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+```python Python
+import justrouting
+
+client = justrouting.Client("YOUR_API_KEY")
+
+places = client.geocode.search(justrouting.GeocodeRequest(
+    text="Marina Bay Sands, Singapore",
+    limit=5,
+))
+
+for p in places.results:
+    print(f"{p.formatted} -> {p.lon},{p.lat}")
+```
+
+```ts JavaScript
+import { Client } from '@justrouting/client';
+
+const client = new Client("YOUR_API_KEY");
+
+const resp = await client.geocode.search({
+  text: 'Marina Bay Sands, Singapore',
+  limit: 5,
+});
+
+for (const r of resp.results) {
+  const [lon, lat] = r.location();
+  console.log(`${r.formatted} -> ${lon},${lat}`);
+}
+```
+
+```go Go
+package main
+
+import (
+    "context"
+    "fmt"
+    "log"
+    "net/http"
+    "time"
+
+    justrouting "github.com/justrouting/go-client"
+)
+
+func main() {
+    client := justrouting.NewClient("YOUR_API_KEY",
+        justrouting.WithHTTPClient(&http.Client{Timeout: 10 * time.Second}),
+    )
+
+    resp, err := client.Geocode.Search(context.Background(), &justrouting.GeocodeRequest{
+        Text:  "Marina Bay Sands, Singapore",
+        Limit: 5,
+    })
+    if err != nil {
+        log.Fatal(err)
+    }
+
+    for i, r := range resp.Results {
+        fmt.Printf("#%d %s (%.6f, %.6f)\n", i+1, r.Formatted, r.Lon, r.Lat)
+    }
+}
+```
+</CodeGroup>
+
+## Request Parameters
+
+### Search input
+
+Exactly one of `text` or the structured fields is required. Structured fields that are empty are ignored — the API only sees what you provide.
+
+| Parameter | Type | Description |
+| --- | --- | --- |
+| `text` | string | Free-form address to search, e.g. `Marina Bay Sands, Singapore`. Mutually exclusive with the structured fields |
+| `name` | string | Name of the place, e.g. `Marina Bay Sands` |
+| `housenumber` | string | House or building number, e.g. `10` |
+| `street` | string | Street name, e.g. `Bayfront Avenue` |
+| `postcode` | string | Postal code, e.g. `018956` |
+| `city` | string | City or locality, e.g. `Singapore` |
+| `state` | string | State or region |
+| `country` | string | Country, e.g. `Singapore` — the strongest disambiguator for common, abbreviated, or misspelled names |
+
+### Response options
+
+| Parameter | Type | Default | Description |
+| --- | --- | --- | --- |
+| `limit` | int | `5` | Maximum number of results to return |
+| `offset` | int | `0` | Skip the first `offset` results before applying `limit` |
+| `filter` | string | — | Restrict results, e.g. `countrycode:sg`; repeatable, all filters apply |
+| `bias` | string | — | Steer results toward a location, e.g. `proximity:103.8,1.3`; adds a `distance` field to each result |
+| `type` | string | — | Restrict to a feature type, e.g. `street` or `city` |
+| `lang` | string | — | Preferred language for results, e.g. `en` |
+| `format` | string | `json` | Response format; `json` is the only documented value |
+
+### Examples
+
+<Tabs>
+  <Tab title="Free text">
+    ```bash
+    curl "https://api.justrouting.tech/geocode/v1/search?text=Marina%20Bay%20Sands%2C%20Singapore&limit=1" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+  </Tab>
+  <Tab title="Structured address">
+    ```bash
+    curl "https://api.justrouting.tech/geocode/v1/search?name=Marina%20Bay%20Sands&housenumber=10&street=Bayfront%20Avenue&postcode=018956&city=Singapore&country=Singapore&limit=1" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+  </Tab>
+  <Tab title="Filter by country">
+    ```bash
+    curl "https://api.justrouting.tech/geocode/v1/search?text=Orchard%20Road&filter=countrycode:sg&limit=1" \
+      -H "Authorization: Bearer YOUR_API_KEY"
+    ```
+  </Tab>
+</Tabs>
+
+## Response
+
+```json response-example.json
+{
+  "results": [
+    {
+      "datasource": {
+        "sourcename": "openstreetmap",
+        "attribution": "© OpenStreetMap contributors",
+        "license": "Open Database License",
+        "url": "https://www.openstreetmap.org/copyright"
+      },
+      "name": "Marina Bay Sands",
+      "housenumber": "10",
+      "street": "Bayfront Avenue",
+      "suburb": "Downtown Core",
+      "district": "Central Region",
+      "postcode": "018956",
+      "city": "Singapore",
+      "country": "Singapore",
+      "country_code": "sg",
+      "lon": 103.8607226,
+      "lat": 1.2836965,
+      "formatted": "Marina Bay Sands, 10 Bayfront Avenue, Singapore 018956, Singapore",
+      "address_line1": "Marina Bay Sands",
+      "address_line2": "10 Bayfront Avenue, Singapore 018956, Singapore",
+      "category": "accommodation.hotel",
+      "result_type": "amenity",
+      "rank": {
+        "importance": 0.46658588691550174,
+        "popularity": 7.418586239869289,
+        "confidence": 1,
+        "confidence_city_level": 1,
+        "match_type": "full_match"
+      },
+      "timezone": {
+        "name": "Asia/Singapore",
+        "offset_STD": "+08:00",
+        "offset_STD_seconds": 28800
+      },
+      "plus_code": "6PH57VM6+F7",
+      "place_id": "51667b3e1416f7594059aad55757058af43ff00103f9018322790001000000c002019203104d6172696e61204261792053616e6473",
+      "bbox": {
+        "lon1": 103.8606726,
+        "lat1": 1.2836465,
+        "lon2": 103.8607726,
+        "lat2": 1.2837465
+      }
+    }
+  ],
+  "query": {
+    "text": "Marina Bay Sands, Singapore",
+    "parsed": {
+      "house": "marina bay sands",
+      "city": "singapore",
+      "expected_type": "amenity"
+    }
+  }
+}
+```
+
+### Response fields
+
+| Field | Type | Description |
+| --- | --- | --- |
+| `results[]` | array | Matching places, ordered by relevance (best first); empty when nothing matches |
+| `results[].lon` / `results[].lat` | float | The place's position in **`lng,lat` order** — pass directly into the `coordinates` of the routing APIs |
+| `results[].formatted` | string | Full, human-readable address |
+| `results[].address_line1` / `address_line2` | string | Address split into two display lines |
+| `results[].name` / `housenumber` / `street` / `postcode` / `city` / `state` / `country` | string | Structured address components |
+| `results[].country_code` | string | ISO 3166-1 alpha-2 country code, e.g. `sg` |
+| `results[].result_type` | string | Feature type, e.g. `amenity`, `building`, `street` |
+| `results[].place_id` | string | Opaque identifier for the place |
+| `results[].category` | string | Feature category, e.g. `accommodation.hotel` |
+| `results[].rank` | object | Relevance and match-confidence scores, see below |
+| `results[].timezone` | object | Time zone with standard/daylight offsets |
+| `results[].bbox` | object | Bounding box as `[lon1, lat1, lon2, lat2]` |
+| `results[].distance` | float | **meters** from the `bias` location; present only when `bias` is set |
+| `query` | object | Echo of how the API interpreted the request (`text` and `parsed`) |
+
+<Accordion title="Rank object">
+Scores how well a result matches the query:
+
+| Field | Description |
+| --- | --- |
+| `importance` | Place prominence in the source data |
+| `popularity` | Search popularity of the place |
+| `confidence` | Overall match confidence, 0–1 |
+| `confidence_city_level` | Confidence at city granularity |
+| `match_type` | How the query matched, e.g. `full_match` |
+</Accordion>
+
+<Accordion title="Timezone and BBox objects">
+`timezone` has `name` (IANA name), `offset_STD`/`offset_DST` (`+08:00`-style) and their `*_seconds` equivalents. `bbox` is the place's bounding box as `[lon1, lat1, lon2, lat2]`, useful for centering a map view.
+</Accordion>
+
+<Info>
+  Geocode results use the same `lng,lat` order as the routing APIs — paste `lon`,`lat` straight into `coordinates`. See [Coverage](/coverage) for the countries served.
+</Info>
+
+## Errors
+
+| HTTP | code | Meaning |
+| --- | --- | --- |
+| 401 | — | Authentication failed (`error` field in the body), see [Authentication](/authentication) |
+| 400 | — | Invalid request parameters; the upstream error body is passed through |
+| 429 | — | Quota exceeded, see [Rate Limits](/rate-limits) |
+| 502 | — | Geocoding provider unavailable (`error` field in the body) |
+
+## Recipes
+
+- **Geocode → route**: `results[0].lon` / `results[0].lat` are already in `lng,lat` order — drop them into `/route/v1/driving/{lng},{lat}` or an SDK `RouteRequest(origin=[lon, lat])`
+- **Disambiguate common names**: prefer the structured form with `city` + `country` — they are the strongest disambiguators
+- **Pin results to one country**: `filter=countrycode:sg`; see [Coverage](/coverage) for supported codes
+
+## Related
+
+<CardGroup cols={3}>
+  <Card title="Directions" icon="route" href="/api-reference/directions">
+    Route between the coordinates you just geocoded
+  </Card>
+  <Card title="Nearest" icon="crosshair" href="/api-reference/nearest">
+    Snap a coordinate to the road network
+  </Card>
+  <Card title="Fleet Optimization" icon="truck" href="/api-reference/fleet-optimization">
+    VROOM vehicle routing with time windows and capacity
+  </Card>
+</CardGroup>
