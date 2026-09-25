@@ -58,7 +58,8 @@
         "pages": [
           "guides/draw-route-on-map",
           "guides/turn-by-turn",
-          "guides/sdks"
+          "guides/sdks",
+          "guides/mcp"
         ]
       }
     ]
