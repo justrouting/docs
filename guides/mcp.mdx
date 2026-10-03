@@ -3,10 +3,12 @@ title: "MCP"
 description: "Give Claude, Cursor, and other MCP-compatible AI assistants road routing and geocoding with the JustRouting MCP server."
 ---
 
-The JustRouting MCP server lets MCP-compatible AI assistants — Claude, Cursor, and others — calculate routes and geocode places directly. It exposes two tools:
+The JustRouting MCP server lets MCP-compatible AI assistants — Claude, Cursor, and others — calculate routes, distance matrices, and fleet plans, and geocode places directly. It exposes four tools:
 
 - **`route`** — distance and travel duration between two locations, driving or motorcycle
-- **`geocode`** — convert a place name or address into coordinates, ready to feed into `route`
+- **`table`** — matrix of distances and durations between many locations at once
+- **`geocode`** — convert a place name or address into coordinates, ready to feed into `route`, `table`, or `optimize`
+- **`optimize`** — assign jobs to vehicles and order each vehicle's stops
 
 The server is a thin stdio process built on the official JustRouting Go client, so authentication, retries, and rate-limit handling are inherited from the API. Source code and releases are on [GitHub](https://github.com/justrouting/mcp).
 
@@ -70,9 +72,43 @@ Coordinates use `longitude,latitude` order. If the user asks about places by nam
 - `distance_meters` — driving distance in **meters**
 - `duration_seconds` — estimated travel time in **seconds**
 
+### table
+
+Calculate a matrix of driving durations and distances between many locations at once.
+
+```json
+{
+  "coordinates": ["103.708362,1.357371", "103.8514,1.2897", "103.984748,1.352212"]
+}
+```
+
+Keep the places in a fixed order: each position in `coordinates` is an index, and the rows and columns of the returned matrices are numbered by these indices. Optional `sources` and `destinations` restrict the matrix to subsets of those indices; optional `annotations` selects which matrices to compute — `"duration"`, `"distance"`, or both (the default). Set `profile` to `"motorcycle"` when the request mentions a motorcycle.
+
+Use `table` when comparing several places at once — for example, to pick the nearest of several drivers, put the customer first and the drivers after, then read the first row:
+
+```json
+{
+  "durations": [
+    [0, 1641.9, 2225.6],
+    [1776.9, 0, 1298.3],
+    [2631.3, 1648.4, 0]
+  ],
+  "distances": [
+    [0, 22021.2, 36911.2],
+    [23702.5, 0, 18571.5],
+    [40441.8, 21426.3, 0]
+  ]
+}
+```
+
+- `durations` — travel time in **seconds**, indexed `[source][destination]`
+- `distances` — driving distance in **meters**, same layout
+
+A pair the engine cannot connect is reported as `null` — never read it as zero. The response also echoes `sources` and `destinations` with each place's snapped coordinates and an `index` pointing back to its position in the list. If the user refers to places by name, call `geocode` first for every place and pass the `coordinates` values in a fixed order.
+
 ### geocode
 
-Search for places and convert a place name or address into coordinates. Use this before `route` when the user refers to places by name.
+Search for places and convert a place name or address into coordinates. Use this before `route`, `table`, or `optimize` when the user refers to places by name.
 
 The search is structured: the assistant parses the user's place reference into address components and passes only the ones it can determine — `name`, `housenumber`, `street`, `postcode`, `city`, `country`. Prefer including `country` (and `city`) when the context implies them — they are the strongest disambiguators for common, abbreviated, or misspelled names.
 
@@ -105,15 +141,68 @@ At least one component is required. `limit` is optional and defaults to 1 (best 
 }
 ```
 
-Results are ordered best first. The `coordinates` field is ready to pass to `route`. If nothing matches, the tool returns an error.
+Results are ordered best first. The `coordinates` field is ready to pass to `route`, `table`, or `optimize`. If nothing matches, the tool returns an error.
+
+### optimize
+
+Solve a vehicle routing problem: assign jobs to vehicles and order each vehicle's stops.
+
+```json
+{
+  "vehicles": [
+    { "id": 1, "start": "103.79234106,1.32463108", "end": "103.79234106,1.32463108" },
+    { "id": 2, "start": "103.82324228,1.32408622", "end": "103.82324228,1.32408622" }
+  ],
+  "jobs": [
+    { "id": 1, "location": "103.79751693,1.31035001" },
+    { "id": 2, "location": "103.78432387,1.31490148" },
+    { "id": 3, "location": "103.79763397,1.31980519" }
+  ]
+}
+```
+
+Every vehicle needs an `id`; every job needs an `id` and a `location` in `longitude,latitude` order. For a round trip (the vehicle returns to where it began), set both `start` and `end` to the vehicle's current location; omit them when the vehicle may start or end anywhere. Each vehicle's `profile` is optional — `"motorcycle"` when the request mentions a motorcycle, otherwise the default driving profile.
+
+If the user gives place names or addresses, call `geocode` first for every place and pass each result's `coordinates` value here.
+
+```json
+{
+  "routes": [
+    {
+      "vehicle": 1,
+      "steps": [
+        { "type": "start", "arrival": 0, "duration": 0 },
+        { "type": "job", "job": 2, "arrival": 269, "duration": 269 },
+        { "type": "job", "job": 1, "arrival": 673, "duration": 673 },
+        { "type": "job", "job": 3, "arrival": 922, "duration": 922 },
+        { "type": "end", "arrival": 1144, "duration": 1144 }
+      ]
+    },
+    { "vehicle": 2, "steps": [ ... ] }
+  ],
+  "unassigned": []
+}
+```
+
+- `routes` — one itinerary per vehicle that was used; read each route's `steps` in order — each `job` step carries the served job's id in its `job` field, plus `arrival` and `duration` in seconds — to tell which vehicle serves which jobs and when
+- `unassigned` — the jobs no vehicle could serve
+- `summary` — aggregate cost, duration, and distance across all routes
 
 ### Asking about places by name
 
-For a prompt such as "how long from 'marina bay singapore' driving to 'changqi airport'?", the assistant geocodes each place and then routes:
+When the user refers to places by name, the assistant geocodes each place first and feeds the `coordinates` values into the routing tool.
+
+For "how long from 'marina bay singapore' driving to 'changqi airport'?":
 
 1. `geocode` with `"name": "marina bay", "country": "singapore"` → take `coordinates`
 2. `geocode` with `"name": "changqi airport"` → take `coordinates`
 3. `route` with the two `coordinates` values as `origin` and `destination` (omit `profile` for driving)
+
+For "plan today's deliveries for my two vans":
+
+1. `geocode` the depot and every delivery address
+2. `optimize` with one vehicle entry per van (`start` and `end` set to the depot for a round trip) and one job entry per delivery
+3. Read each route's `steps` in order — `job` steps show which deliveries each van serves and when
 
 ## Claude
 
@@ -161,4 +250,6 @@ Add the MCP server with the same JSON configuration (Settings → MCP → Add ne
 - [Authentication](/authentication)
 - [Geocode API](/api-reference/geocode)
 - [Directions API](/api-reference/directions)
+- [Distance Matrix API](/api-reference/distance-matrix)
+- [Fleet Optimization API](/api-reference/fleet-optimization)
 - [SDKs](/guides/sdks)
