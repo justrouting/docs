@@ -1,5 +1,7 @@
 # JustRouting Docs
 
+[![Validate docs](https://github.com/justrouting/docs/actions/workflows/validate.yml/badge.svg)](https://github.com/justrouting/docs/actions/workflows/validate.yml)
+
 Source for the [JustRouting docs site](https://justrouting.tech) — built with [Mintlify](https://mintlify.com).
 
 JustRouting provides super lightweight routing APIs tuned for Southeast Asia: road-accurate **Directions**, **Distance Matrix**, **Map Matching**, and **Fleet Optimization** — built on open source (OSRM, VROOM, OpenStreetMap). Standard protocols, zero lock-in.
