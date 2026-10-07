@@ -1,9 +1,9 @@
 ---
-title: "OpenAPI"
+title: "Overview"
 description: "Machine-readable specification for the JustRouting API."
 ---
 
-# Overview
+# OpenAPI
 
 JustRouting provides an OpenAPI specification for developers and tools that
 want to discover and integrate the API programmatically.
@@ -13,7 +13,7 @@ schemas, and response schemas.
 
 ## Specification
 
-[Download openapi.json](https://raw.githubusercontent.com/justrouting/docs/main/openapi.json)
+[Download openapi.json](https://raw.githubusercontent.com/justrouting/docs/main/openapi/openapi.json)
 
 Use the interactive API explorer below to try JustRouting endpoints directly
 from the documentation.
