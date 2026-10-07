@@ -122,17 +122,53 @@ If the user provides place names or addresses instead of coordinates, call [`geo
 
 Prompt for an MCP-capable agent, e.g. Claude or Codex
 
-```shell
+```markdown
 How long does it take to drive from Marina Bay Sands Singapore to Changi Airport?
-# - Time: ~24 minutes
+
+# Driving from Marina Bay Sands to Changi Airport takes about 23-24 minutes (23.6 min), covering roughly 19 km.
+# 
+# Route details:
+# - Main roads: East Coast Parkway (ECP), Airport Boulevard
 # - Distance: ~19.1 km
-# - Route: via East Coast Parkway (ECP) and Airport Boulevard
-# - Tolls: yes — Electronic Road Pricing (ERP) may apply depending on time of day
-# Traffic conditions can add time during peak hours.
+# - Time: ~23 min 36 s
+# - Tolls: Yes — expect ERP charges along the ECP
+#
+# Note that actual travel time varies with traffic, which tends to be heavier during weekday peak hours.
 
 What if I'm riding a motorcycle?
-# On a motorcycle, same route (via East Coast Parkway):
-# - Time: ~27 minutes (26 min 31 s)
-# - Distance: ~19.1 km
-# - Tolls: yes, ERP applies
+
+# On a motorcycle, the trip is about 26-27 minutes — slightly longer than by car:
+# ┌──────────┬───────────────────┬───────────────────────┐
+# │          │        Car        │      Motorcycle       │
+# ├──────────┼───────────────────┼───────────────────────┤
+# │ Distance │ ~19.1 km          │ ~19.1 km (same route) │
+# ├──────────┼───────────────────┼───────────────────────┤
+# │ Time     │ ~23.6 min         │ ~26.5 min             │
+# ├──────────┼───────────────────┼───────────────────────┤
+# │ Roads    │ ECP, Airport Blvd │ ECP, Airport Blvd     │
+# ├──────────┼───────────────────┼───────────────────────┤
+# │ Tolls    │ Yes (ERP)         │ Yes (ERP)             │
+# └──────────┴───────────────────┴───────────────────────┘
+#
+# The route stays the same along the East Coast Parkway, but the motorcycle profile assumes slower average speeds.
+# ERP charges apply to motorcycles too, though at lower rates than cars.
+
+What if I want to avoid tolls?
+
+# Avoiding tolls on a motorcycle changes the route:
+# ┌──────────┬────────────────────────┬──────────────────────────────────────────┐
+# │          │ Motorcycle, with tolls │           Motorcycle, no tolls           │
+# ├──────────┼────────────────────────┼──────────────────────────────────────────┤
+# │ Distance │ ~19.1 km               │ ~21.6 km                                 │
+# ├──────────┼────────────────────────┼──────────────────────────────────────────┤
+# │ Time     │ ~26.5 min              │ ~35 min                                  │
+# ├──────────┼────────────────────────┼──────────────────────────────────────────┤
+# │ Route    │ ECP, Airport Blvd      │ Nicoll Highway → ECP (past ERP gantries) │
+# ├──────────┼────────────────────────┼──────────────────────────────────────────┤
+# │ Tolls    │ Yes (ERP)              │ None                                     │
+# └──────────┴────────────────────────┴──────────────────────────────────────────┘
+#
+# The toll-free route adds about 2.5 km and ~8-9 minutes. It heads via Nicoll Highway and joins the East Coast Parkway
+# after the ERP gantries. Worth it if you'd rather trade time for savings, especially since ERP rates are lowest
+# outside peak hours anyway.
 ```
