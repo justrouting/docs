@@ -16,7 +16,6 @@
     "groups": [
       {
         "group": "Getting Started",
-        "icon": "rocket",
         "pages": [
           "index",
           "quickstart",
@@ -28,7 +27,6 @@
       },
       {
         "group": "API Reference",
-        "icon": "code",
         "pages": [
           "api-reference/directions",
           "api-reference/distance-matrix",
@@ -41,28 +39,25 @@
       },
       {
         "group": "MCP",
-        "icon": "sparkles",
         "pages": [
           "mcp/overview"
         ]
       },
       {
         "group": "OpenAPI",
-        "icon": "terminal",
         "pages": [
-          "openapi",
-          "openapi.json GET /route/v1/{profile}/{coordinates}",
-          "openapi.json GET /table/v1/{profile}/{coordinates}",
-          "openapi.json GET /match/v1/{profile}/{coordinates}",
-          "openapi.json GET /trip/v1/{profile}/{coordinates}",
-          "openapi.json GET /nearest/v1/{profile}/{coordinates}",
-          "openapi.json GET /geocode/v1/search",
-          "openapi.json POST /optimize"
+          "openapi/overview",
+          "openapi/openapi.json GET /route/v1/{profile}/{coordinates}",
+          "openapi/openapi.json GET /table/v1/{profile}/{coordinates}",
+          "openapi/openapi.json GET /match/v1/{profile}/{coordinates}",
+          "openapi/openapi.json GET /trip/v1/{profile}/{coordinates}",
+          "openapi/openapi.json GET /nearest/v1/{profile}/{coordinates}",
+          "openapi/openapi.json GET /geocode/v1/search",
+          "openapi/openapi.json POST /optimize"
         ]
       },
       {
         "group": "Guides",
-        "icon": "book-open",
         "pages": [
           "guides/draw-route-on-map",
           "guides/turn-by-turn",
