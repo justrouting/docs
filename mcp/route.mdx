@@ -1,0 +1,138 @@
+---
+title: "Route Tool"
+description: "Calculate one driving route between two locations — distance, duration, geometry, and road information."
+icon: "route"
+---
+
+## Overview
+
+Calculate a route between two locations.
+
+Use this tool when the user needs to:
+
+* calculate driving distance
+* estimate travel time
+* get a route between two locations
+* get route geometry
+* understand which roads a route uses
+* avoid specific road types
+
+Do not use it for comparing many origin-destination pairs. Use [`table`](/mcp/table) instead.
+
+Do not use it for assigning jobs to vehicles or ordering multiple stops. Use [`optimize`](/mcp/optimize) instead.
+
+## Input
+
+```json
+{
+  "origin": "103.8198,1.3521",
+  "destination": "103.9915,1.3644"
+}
+```
+
+Coordinates must use:
+
+```text
+longitude,latitude
+```
+
+For example:
+
+```text
+103.8198,1.3521
+```
+
+## Motorcycle routing
+
+`profile` is optional.
+
+Set it to `"motorcycle"` when the user explicitly asks for a motorcycle or motorbike route.
+
+Otherwise, omit `profile` to use the default driving profile.
+
+```json
+{
+  "origin": "103.8198,1.3521",
+  "destination": "103.9915,1.3644",
+  "profile": "motorcycle"
+}
+```
+
+## Avoiding roads
+
+Use `exclude` when the user explicitly asks to avoid a road type.
+
+Supported values:
+
+* `toll`
+* `motorway`
+* `ferry`
+
+For example:
+
+```json
+{
+  "origin": "103.8198,1.3521",
+  "destination": "103.9915,1.3644",
+  "exclude": ["toll"]
+}
+```
+
+Road avoidance is a preference, not a guarantee. The engine avoids the specified road type when a reasonable alternative exists.
+
+## Output
+
+```json
+{
+  "distance_meters": 18500,
+  "duration_seconds": 1500,
+  "profile": "driving",
+  "origin": {
+    "input": "103.8198,1.3521",
+    "snapped": [103.8197, 1.3520],
+    "name": "Example Road",
+    "distance": 4.2
+  },
+  "destination": {
+    "input": "103.9915,1.3644",
+    "snapped": [103.9915, 1.3644],
+    "name": "Airport Boulevard",
+    "distance": 8.1
+  },
+  "geometry": "ka|`@_ceeEnAqB...",
+  "summary": {
+    "roads": ["East Coast Parkway"],
+    "tolls": false,
+    "ferry": false
+  }
+}
+```
+
+* `distance_meters` — route distance in meters
+* `duration_seconds` — estimated travel time in seconds
+* `profile` — routing profile used
+* `geometry` — simplified encoded polyline for the route
+* `summary.roads` — main roads used by the route
+* `summary.tolls` — whether the route uses toll roads
+* `summary.ferry` — whether the route includes a ferry crossing
+
+If the user provides place names or addresses instead of coordinates, call [`geocode`](/mcp/geocode) first.
+
+## Example
+
+Prompt for an MCP-capable agent, e.g. Claude or Codex
+
+```shell
+How long does it take to drive from Marina Bay Sands Singapore to Changi Airport?
+# - Time: ~24 minutes
+# - Distance: ~19.1 km
+# - Route: via East Coast Parkway (ECP) and Airport Boulevard
+# - Tolls: yes — Electronic Road Pricing (ERP) may apply depending on time of day
+# Traffic conditions can add time during peak hours.
+
+What if I'm riding a motorcycle?
+# On a motorcycle, same route (via East Coast Parkway):
+# - Time: ~27 minutes (26 min 31 s)
+# - Distance: ~19.1 km
+# - Tolls: yes, ERP applies
+```

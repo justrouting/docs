@@ -1,0 +1,235 @@
+---
+title: "Table Tool"
+description: "Compare travel times or distances between multiple locations with a distance and travel-time matrix."
+icon: "table"
+---
+
+## Overview
+
+Calculate a distance and/or travel-time matrix between multiple locations.
+
+Use this tool when the user needs to:
+
+* find the nearest driver, vehicle, store, or facility
+* compare several destinations
+* compare multiple origin-destination pairs
+* build a distance or travel-time matrix
+
+Do not use it for a single route between two locations. Use [`route`](/mcp/route) instead.
+
+## Input
+
+```json
+{
+  "coordinates": [
+    "103.8391,1.2771",
+    "103.8590,1.2834",
+    "103.7986,1.2885"
+  ]
+}
+```
+
+Each coordinate has a stable zero-based index based on its position in the `coordinates` array.
+
+For example:
+
+```text
+coordinates[0] → index 0
+coordinates[1] → index 1
+coordinates[2] → index 2
+```
+
+Matrix rows correspond to **sources**.
+
+Matrix columns correspond to **destinations**.
+
+A matrix value at `[row][column]` represents the route from that source to that destination.
+
+For example:
+
+```text
+durations[0][2]
+```
+
+means the travel time from coordinate `0` to coordinate `2`.
+
+The response includes `sources` and `destinations` with the original coordinate indices so the matrix can be mapped back to the user's locations.
+
+## Sources and destinations
+
+Optional `sources` and `destinations` restrict the matrix to subsets of the coordinate indices.
+
+For example:
+
+```json
+{
+  "coordinates": [
+    "103.8391,1.2771",
+    "103.8590,1.2834",
+    "103.7986,1.2885"
+  ],
+  "sources": [0],
+  "destinations": [1, 2]
+}
+```
+
+This calculates routes from coordinate `0` to coordinates `1` and `2`.
+
+## Annotations
+
+Use:
+
+```json
+"annotations": ["duration"]
+```
+
+for travel times.
+
+Use:
+
+```json
+"annotations": ["distance"]
+```
+
+for distances.
+
+Use:
+
+```json
+"annotations": ["duration", "distance"]
+```
+
+for both.
+
+If omitted, both are returned.
+
+* `duration` — travel time in seconds
+* `distance` — distance in meters
+
+## Motorcycle routing
+
+Set:
+
+```json
+"profile": "motorcycle"
+```
+
+when the user explicitly asks for motorcycle or motorbike routing.
+
+Otherwise, omit `profile`.
+
+## Nearest-driver example
+
+For a question such as:
+
+> Which driver is closest to the customer?
+
+Keep the locations in a fixed order:
+
+```text
+coordinates[0] = customer
+coordinates[1] = driver A
+coordinates[2] = driver B
+coordinates[3] = driver C
+```
+
+Then:
+
+1. Use `[0]` as the source.
+2. Use the driver indices as destinations.
+3. Read the corresponding values from the first matrix row.
+4. Ignore `null` values.
+5. Choose the smallest distance or duration, depending on the user's request.
+
+For example:
+
+```json
+{
+  "coordinates": [
+    "103.8391,1.2771",
+    "103.8590,1.2834",
+    "103.7986,1.2885"
+  ],
+  "sources": [0],
+  "destinations": [1, 2],
+  "annotations": ["distance"]
+}
+```
+
+## Output
+
+```json
+{
+  "code": "Ok",
+  "durations": [
+    [0, 1860, null],
+    [1850, 0, 2100],
+    [null, 2110, 0]
+  ],
+  "distances": [
+    [0, 14200, null],
+    [14100, 0, 18400],
+    [null, 18200, 0]
+  ],
+  "sources": [
+    {
+      "index": 0,
+      "name": "Duxton Road",
+      "location": [103.8391, 1.2771],
+      "distance": 12.3
+    }
+  ],
+  "destinations": [
+    {
+      "index": 1,
+      "name": "Bayfront Avenue",
+      "location": [103.8590, 1.2834],
+      "distance": 8.4
+    }
+  ]
+}
+```
+
+`durations` are in seconds.
+
+`distances` are in meters.
+
+A matrix value of `null` means that the origin-destination pair is unreachable.
+
+**Never interpret `null` as zero.**
+
+If the user provides place names or addresses instead of coordinates, call [`geocode`](/mcp/geocode) first for every place. Keep the locations in the same order when constructing the matrix request.
+
+## Example
+
+Prompt for an MCP-capable agent, e.g. Claude or Codex
+
+```shell
+I need to assign a delivery to the closest available driver by driving distance.
+
+Customer:
+- Mondrian Singapore Duxton
+
+Available drivers:
+- D1: Marina Bay Sands
+- D2: Waterford Residence
+- D3: IKEA Alexandra
+- D4: VivoCity
+
+Compare the driving distance from each driver to the customer and recommend which driver should 
+
+# Here's the driving distance comparison from each driver to the customer (Mondrian Singapore Duxton):
+# ┌────────┬─────────────────────┬──────────┬────────────┐
+# │ Driver │      Location       │ Distance │ Drive time │
+# ├────────┼─────────────────────┼──────────┼────────────┤
+# │ D1     │ Marina Bay Sands    │ 3.60 km  │ ~8 min     │
+# ├────────┼─────────────────────┼──────────┼────────────┤
+# │ D2     │ Waterford Residence │ 2.78 km  │ ~6 min     │
+# ├────────┼─────────────────────┼──────────┼────────────┤
+# │ D3     │ IKEA Alexandra      │ 5.33 km  │ ~13 min    │
+# ├────────┼─────────────────────┼──────────┼────────────┤
+# │ D4     │ VivoCity            │ 3.30 km  │ ~7 min     │
+# └────────┴─────────────────────┴──────────┴────────────┘
+# Recommendation: D2 (Waterford Residence) — the closest by both driving distance (2.78 km) and travel time (~6 minutes).
+# All four drivers are reachable, so no fallback is needed.
+```

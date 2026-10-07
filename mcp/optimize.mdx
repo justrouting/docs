@@ -1,0 +1,215 @@
+---
+title: "Optimize Tool"
+description: "Assign jobs to vehicles and determine the order in which each vehicle visits its stops."
+icon: "truck"
+---
+
+## Overview
+
+Assign jobs to vehicles and determine the order in which each vehicle should visit its assigned jobs.
+
+Use this tool when the user needs to:
+
+* assign multiple deliveries or pickups to vehicles
+* plan routes for a fleet
+* determine the order of multiple stops
+* optimize a multi-vehicle routing solution
+
+Do not use it for a single route. Use [`route`](/mcp/route).
+
+Do not use it only to compare distances or travel times between locations. Use [`table`](/mcp/table).
+
+## Input
+
+```json
+{
+  "vehicles": [
+    {
+      "id": 1,
+      "start": "103.7923,1.3246",
+      "end": "103.7923,1.3246"
+    },
+    {
+      "id": 2,
+      "start": "103.8232,1.3241",
+      "end": "103.8232,1.3241"
+    }
+  ],
+  "jobs": [
+    {
+      "id": 1,
+      "location": "103.7975,1.3104"
+    },
+    {
+      "id": 2,
+      "location": "103.7843,1.3149"
+    },
+    {
+      "id": 3,
+      "location": "103.7976,1.3198"
+    }
+  ]
+}
+```
+
+Every vehicle must have a unique `id`.
+
+Every job must have a unique `id` and a `location`.
+
+Locations must use:
+
+```text
+longitude,latitude
+```
+
+Each vehicle must have at least a `start` or an `end`.
+
+For a round trip, set both `start` and `end` to the same location:
+
+```json
+{
+  "id": 1,
+  "start": "103.7923,1.3246",
+  "end": "103.7923,1.3246"
+}
+```
+
+If `start` or `end` is omitted, the vehicle may start or end anywhere.
+
+## Vehicle profiles
+
+Each vehicle can use its own routing profile.
+
+Use:
+
+```json
+"profile": "motorcycle"
+```
+
+when the user explicitly asks for a motorcycle or motorbike route.
+
+Otherwise, omit `profile` to use the default driving profile.
+
+For example:
+
+```json
+{
+  "id": 1,
+  "profile": "motorcycle",
+  "start": "103.7923,1.3246",
+  "end": "103.7923,1.3246"
+}
+```
+
+## Output
+
+A simplified result looks like:
+
+```json
+{
+  "summary": {
+    "cost": 2733,
+    "routes": 2,
+    "unassigned": 0,
+    "duration": 2733
+  },
+  "routes": [
+    {
+      "vehicle": 1,
+      "cost": 1144,
+      "duration": 1144,
+      "steps": [
+        {
+          "type": "start",
+          "location": [103.7923, 1.3246],
+          "arrival": 0
+        },
+        {
+          "type": "job",
+          "job": 2,
+          "location": [103.7843, 1.3149],
+          "arrival": 269,
+          "duration": 269
+        },
+        {
+          "type": "job",
+          "job": 1,
+          "location": [103.7975, 1.3104],
+          "arrival": 673,
+          "duration": 673
+        },
+        {
+          "type": "end",
+          "location": [103.7923, 1.3246],
+          "arrival": 1144,
+          "duration": 1144
+        }
+      ]
+    }
+  ],
+  "unassigned": []
+}
+```
+
+Use `routes[].steps` to determine:
+
+* which vehicle serves each job
+* the order in which jobs are visited
+* when each job is reached
+
+A `job` step contains the job ID, arrival time, travel duration, and travel distance for reaching that job.
+
+Always check `unassigned`.
+
+**Do not assume that every job will be assigned.**
+
+If the user provides place names or addresses instead of coordinates, call [`geocode`](/mcp/geocode) first for every location and use the selected coordinates in the optimization request.
+
+## Example
+
+Prompt for an MCP-capable agent, e.g. Claude or Codex
+
+```shell
+I have two vans available to pick up packages from six customers.
+
+Vans:
+- V1 starts at 249 Sixth Ave, Singapore 275771
+- V2 starts at 8 Harlyn Rd, Singapore 299445
+
+Customers:
+- C1: 75 Jln Kelabu Asap, Singapore 278268
+- C2: 20 Mount Sinai Rd, Singapore 276854
+- C3: 10 Bin Tong Park, Singapore 269792
+- C4: 9 Cluny Park, Singapore 259619
+- C5: 28 Nassim Rd, Singapore 258403
+- C6: 30 Chancery Ln, Singapore 309549
+
+How should these six pickup tasks be assigned and ordered between the two vans?
+
+# Solved — all 6 jobs assigned, none left unassigned. Optimal assignment:
+#
+# Van V1 — starts at 249 Sixth Ave (total ~19.4 min)
+# ┌──────┬──────────┬────────────────────┬────────────┐
+# │ Stop │ Customer │      Address       │ Arrives at │
+# ├──────┼──────────┼────────────────────┼────────────┤
+# │ 1    │ C2       │ 20 Mount Sinai Rd  │ ~6 min     │
+# ├──────┼──────────┼────────────────────┼────────────┤
+# │ 2    │ C1       │ 75 Jln Kelabu Asap │ ~13 min    │
+# ├──────┼──────────┼────────────────────┼────────────┤
+# │ 3    │ C3       │ 10 Bin Tong Park   │ ~17 min    │
+# └──────┴──────────┴────────────────────┴────────────┘
+#
+#  Van V2 — starts at 8 Harlyn Rd (total ~29.0 min)
+# ┌──────┬──────────┬────────────────┬────────────┐
+# │ Stop │ Customer │    Address     │ Arrives at │
+# ├──────┼──────────┼────────────────┼────────────┤
+# │ 1    │ C6       │ 30 Chancery Ln │ ~5 min     │
+# ├──────┼──────────┼────────────────┼────────────┤
+# │ 2    │ C5       │ 28 Nassim Rd   │ ~14 min    │
+# ├──────┼──────────┼────────────────┼────────────┤
+# │ 3    │ C4       │ 9 Cluny Park   │ ~23 min    │
+# └──────┴──────────┴────────────────┴────────────┘
+#
+# Each van returns to its own depot afterward. The solver minimizes total fleet driving time (~48.5 min combined),
+# which is why V1 picks up the western cluster and V2 covers the eastern side
+```
