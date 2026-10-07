@@ -40,7 +40,11 @@
       {
         "group": "MCP",
         "pages": [
-          "mcp/overview"
+          "mcp/overview",
+          "mcp/geocode",
+          "mcp/route",
+          "mcp/table",
+          "mcp/optimize"
         ]
       },
       {

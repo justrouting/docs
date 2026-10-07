@@ -1,0 +1,115 @@
+---
+title: "Geocode Tool"
+description: "Convert a place name or address into coordinates — structured fields, filters, and best-match results."
+icon: "search"
+---
+
+## Overview
+
+Search for a place or address and convert it into coordinates.
+
+Use this tool when the user provides:
+
+* a place name
+* a landmark
+* a business
+* a street address
+* another location description
+
+Do not use it when the user already provides coordinates in `longitude,latitude` format.
+
+## Structured input
+
+The search is structured. Parse the user's location into the fields that can be determined:
+
+* `name` — place, landmark, or business name
+* `housenumber` — house or building number
+* `street` — street name
+* `postcode` — postal or ZIP code
+* `city` — city or locality
+* `country` — country
+
+Only provide fields that are known from the user's request.
+
+Do not invent or guess missing address components.
+
+For example:
+
+```json
+{
+  "name": "Marina Bay Sands",
+  "housenumber": "10",
+  "street": "Bayfront Avenue",
+  "postcode": "018956",
+  "city": "Singapore",
+  "country": "Singapore"
+}
+```
+
+When the user's context provides a country or city, include it to disambiguate common, abbreviated, or misspelled place names.
+
+## Limit and filters
+
+`limit` is optional and defaults to `1`.
+
+The maximum value is `10`.
+
+Use a larger `limit` when the location is ambiguous or the user asks for alternatives.
+
+`filters` can optionally restrict the search.
+
+For example:
+
+```json
+{
+  "name": "Marina Bay Sands",
+  "country": "Singapore",
+  "limit": 5,
+  "filters": ["countrycode:sg"]
+}
+```
+
+## Output
+
+```json
+{
+  "results": [
+    {
+      "longitude": 103.859,
+      "latitude": 1.2834,
+      "coordinates": "103.859,1.2834",
+      "formatted": "Marina Bay Sands, 10 Bayfront Avenue, 018956, Singapore",
+      "place_id": "51667b3e...",
+      "country_code": "sg",
+      "result_type": "building"
+    }
+  ]
+}
+```
+
+Results are ordered by relevance.
+
+By default, the best matching result is returned.
+
+If multiple results are requested, choose the result that best matches the user's intended location.
+
+The `coordinates` value is in `longitude,latitude` format and can be passed directly to [`route`](/mcp/route), [`table`](/mcp/table), or [`optimize`](/mcp/optimize).
+
+When using geocode as part of a routing workflow, verify that the selected result matches the user's intended place before passing its coordinates to the next tool.
+
+If no result matches, the tool returns an error so the assistant can refine the search.
+
+## Example
+
+Prompt for an MCP-capable agent, e.g. Claude or Codex
+
+```shell
+What are the latitude and longitude for 75 Jln Kelabu Asap, Singapore 278268?
+
+# The coordinates for 75 Jalan Kelabu Asap, Singapore 278268 are:
+#
+# - Latitude: 1.310368
+# - Longitude: 103.797116
+#
+# (In longitude,latitude format: 103.797116,1.310368)
+```
