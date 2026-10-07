@@ -1,46 +1,64 @@
 ---
 title: "JustRouting Docs"
-description: "Super lightweight routing APIs for Southeast Asia — directions, distance matrix, and fleet optimization."
+description: "Routing APIs for Southeast Asia — directions, geocoding, distance matrices, map matching, and fleet optimization, with car and motorcycle profiles."
 ---
 
-JustRouting Docs cover routing APIs tuned for Southeast Asia: road-accurate **Directions**, **Distance Matrix**, and **Fleet Optimization**, built on Open Source: OSRM, VROOM, and OpenStreetMap. Standard protocols, zero lock-in.
+# JustRouting APIs for Southeast Asia
+
+**Simple routing APIs for developers and AI agents.**
+
+Road routing, geocoding, distance matrices, and fleet optimization — with **car and motorcycle profiles**.
+
+Start in 30 seconds. **$0 to try.** No DevOps, no sales calls, no enterprise contract.
 
 <CardGroup cols={3}>
   <Card title="Quickstart" icon="rocket" href="/quickstart">
-    Get a key, make your first request, and draw the route on a map in 3 minutes
+    Get an API key, make your first route request, and draw it on a map in 3 minutes.
   </Card>
-  <Card title="Directions API" icon="route" href="/api-reference/directions">
-    Routes between two points or ordered waypoints — distance, duration, and turn-by-turn steps
+  <Card title="Directions" icon="route" href="/api-reference/directions">
+    Calculate road routes, distance, duration, and turn-by-turn instructions.
   </Card>
-  <Card title="Distance Matrix" icon="table" href="/api-reference/distance-matrix">
-    N×N travel time and distance matrix in a single request
-  </Card>
-  <Card title="Fleet Optimization" icon="truck" href="/api-reference/fleet-optimization">
-    Multi-vehicle route optimization powered by VROOM, with time windows and capacity
-  </Card>
-  <Card title="Map Matching" icon="crosshair" href="/api-reference/map-matching">
-    Snap GPS traces to the real road network
-  </Card>
-  <Card title="SDKs" icon="package" href="/guides/sdks">
-    Official Python, JavaScript, and Go clients — zero dependencies
+  <Card title="Geocoding" icon="location-dot" href="/api-reference/geocode">
+    Turn place names and addresses into coordinates and address details.
   </Card>
 </CardGroup>
 
-## Basics
+## Core APIs
 
-| | |
-| --- | --- |
-| **Base URL** | `https://api.justrouting.tech` |
-| **Authentication** | `Authorization: Bearer <YOUR_API_KEY>` |
-| **Coordinate format** | `lng,lat` (longitude first), multiple coordinates separated by `;` |
-| **Coverage** | 11 Southeast Asian countries, see [Coverage](/coverage) |
-| **Free tier** | 100 requests/day, no credit card required |
+<CardGroup cols={2}>
+  <Card title="Directions API" icon="route" href="/api-reference/directions">
+    Road-accurate routes between coordinates or ordered waypoints, with distance, duration, geometry, and turn-by-turn steps.
+  </Card>
+  <Card title="Distance Matrix" icon="table" href="/api-reference/distance-matrix">
+    Calculate travel times and distances between many origins and destinations in a single request.
+  </Card>
+  <Card title="Geocoding" icon="location-dot" href="/api-reference/geocode">
+    Convert place names and addresses into longitude, latitude, and structured address details.
+  </Card>
+  <Card title="Fleet Optimization" icon="truck" href="/api-reference/fleet-optimization">
+    Optimize multi-vehicle routes with jobs, shipments, capacities, skills, time windows, and other constraints.
+  </Card>
+</CardGroup>
 
-<Info>
-  Want to try it in the browser first? Open the [Live Demo](https://justrouting.tech) and drag the markers on the map.
-</Info>
+## Advanced APIs
 
-## A minimal request
+<CardGroup cols={3}>
+  <Card title="Map Matching" icon="crosshair" href="/api-reference/map-matching">
+    Match noisy GPS traces to the road network and recover realistic road paths.
+  </Card>
+  <Card title="Trip" icon="route" href="/api-reference/trip">
+    Find an efficient route through a set of coordinates, solving a traveling-salesperson-style problem.
+  </Card>
+  <Card title="Nearest" icon="location-arrow" href="/api-reference/nearest">
+    Find the nearest routable road segment for a coordinate.
+  </Card>
+</CardGroup>
+
+## Built for developers
+
+Use a simple REST API or official **Python, JavaScript/TypeScript, and Go SDKs**.
+
+No routing infrastructure to deploy. No map server to maintain. Just call the API.
 
 ```bash
 curl "https://api.justrouting.tech/route/v1/driving/103.708362,1.357371;103.984748,1.352212?overview=full" \
@@ -66,10 +84,82 @@ curl "https://api.justrouting.tech/route/v1/driving/103.708362,1.357371;103.9847
 }
 ```
 
-No key yet? [Sign up for free](https://justrouting.tech/signup) or jump to the [Quickstart](/quickstart).
+[Get a free API key](https://justrouting.tech/signup) · [Read the Quickstart](/quickstart) · [Explore the SDKs](/guides/sdks)
+
+## Built for AI agents
+
+JustRouting can be used directly by AI assistants and coding agents through **MCP**.
+
+Give an AI agent the ability to:
+
+* Geocode addresses and place names
+* Calculate driving routes and travel times
+* Compare travel times between multiple locations
+* Optimize delivery and fleet routes
+* Route for cars or motorcycles
+
+<CardGroup cols={2}>
+  <Card title="MCP" icon="sparkles" href="/mcp/overview">
+    Connect Claude, Cursor, and other MCP-compatible AI clients to JustRouting.
+  </Card>
+  <Card title="OpenAPI" icon="brackets-curly" href="/openapi">
+    Use the machine-readable API specification with code generators and AI coding tools.
+  </Card>
+</CardGroup>
+
+<Info>
+  **REST API for developers. MCP for AI agents. OpenAPI for machines.**
+</Info>
+
+## Southeast Asia coverage
+
+JustRouting currently provides routing coverage across **11 Southeast Asian countries**:
+
+Singapore · Malaysia · Indonesia · Thailand · Philippines · Vietnam · Cambodia · Laos · Myanmar · Brunei · Timor-Leste
+
+See the full [Coverage](/coverage) details.
+
+## Quick reference
+
+|                       |                                                                    |
+| --------------------- | ------------------------------------------------------------------ |
+| **Base URL**          | `https://api.justrouting.tech`                                     |
+| **Authentication**    | `Authorization: Bearer <YOUR_API_KEY>`                             |
+| **Coordinate format** | `lng,lat` — longitude first; multiple coordinates separated by `;` |
+| **Routing profiles**  | `car`, `motorcycle`                                                |
+| **Coverage**          | 11 Southeast Asian countries                                       |
+| **Free tier**         | 100 requests/day, no credit card required                          |
+
+<Info>
+  Want to try it in the browser first? Open the [Live Demo](https://justrouting.tech) and drag the markers on the map.
+</Info>
+
+## More than an API
+
+JustRouting is built on proven open-source mapping technology, including **OSRM, VROOM, and OpenStreetMap**.
+
+You get standard HTTP APIs and open formats without having to run the underlying routing infrastructure yourself.
+
+**No 128GB server. No ongoing DevOps work. No vendor lock-in.**
+
+## Start routing
+
+No key yet? [Sign up for free](https://justrouting.tech/signup) and make your first request in minutes.
+
+<CardGroup cols={3}>
+  <Card title="Quickstart" icon="rocket" href="/quickstart">
+    Make your first routing request.
+  </Card>
+  <Card title="API Reference" icon="book-open" href="/api-reference/directions">
+    Explore all APIs and parameters.
+  </Card>
+  <Card title="MCP" icon="sparkles" href="/mcp/overview">
+    Give AI agents access to routing.
+  </Card>
+</CardGroup>
 
 ## Need help?
 
-- Source code and SDKs: [github.com/justrouting](https://github.com/justrouting)
-- Email: [hello@justrouting.tech](mailto:hello@justrouting.tech)
-- Usage and quotas: [Dashboard](https://justrouting.tech/dashboard)
+* Source code and SDKs: [github.com/justrouting](https://github.com/justrouting)
+* Email: [hello@justrouting.tech](mailto:hello@justrouting.tech)
+* Usage and quotas: [Dashboard](https://justrouting.tech/dashboard)

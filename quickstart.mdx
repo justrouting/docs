@@ -11,7 +11,7 @@ Quickstart takes three steps and three minutes. No credit card required.
 2. Log in and open the [Dashboard](https://justrouting.tech/dashboard), then click **Create API Key**
 3. Copy the key — it is shown in full only once
 
-## 2. Make your first request
+## 2. Get a route
 
 Try the route in Singapore (replace the key with your own):
 
@@ -81,7 +81,7 @@ func main() {
 
 `routes[0].geometry` in the response is the route geometry (encoded polyline). Distances are in **meters**, durations in **seconds**.
 
-## 3. Draw the route on a map
+## 3. Put it on a map
 
 Request with `geometries=geojson` and `routes[0].geometry` is a ready-to-use GeoJSON LineString:
 

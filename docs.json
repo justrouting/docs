@@ -40,9 +40,17 @@
         ]
       },
       {
+        "group": "MCP",
+        "icon": "sparkles",
+        "pages": [
+          "mcp/overview"
+        ]
+      },
+      {
         "group": "OpenAPI",
         "icon": "terminal",
         "pages": [
+          "openapi",
           "openapi.json GET /route/v1/{profile}/{coordinates}",
           "openapi.json GET /table/v1/{profile}/{coordinates}",
           "openapi.json GET /match/v1/{profile}/{coordinates}",
@@ -58,8 +66,7 @@
         "pages": [
           "guides/draw-route-on-map",
           "guides/turn-by-turn",
-          "guides/sdks",
-          "guides/mcp"
+          "guides/sdks"
         ]
       }
     ]
