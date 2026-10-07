@@ -4,7 +4,9 @@ description: "Official JustRouting client libraries for Python, JavaScript/TypeS
 icon: "cube"
 ---
 
-SDKs are official clients, all **zero third-party dependencies** and open source (MIT). They cover the three API families — Directions, Distance Matrix, Fleet Optimization — with typed errors and built-in 429 retries.
+## Overview
+
+SDKs are official clients, all **zero third-party dependencies** and open source (MIT). They cover the all API families — Directions, Distance Matrix, Map Matching, Trip, Nearest, Geocode, Fleet Optimization — with typed errors and built-in 429 retries.
 
 | Language | Package | Install | Source |
 | --- | --- | --- | --- |
@@ -33,19 +35,8 @@ route = client.routes.get(justrouting.RouteRequest(
     overview="full",
 ))
 
-# Distance Matrix (just the depot row)
-m = client.matrix.get(justrouting.MatrixRequest(
-    coordinates=[[103.708362, 1.357371], [103.8514, 1.2897], [103.984748, 1.352212]],
-    sources=[0], destinations=[1, 2],
-))
-print(m.duration(0, 1))  # seconds or None
-
-# Fleet Optimization
-solution = client.vroom.solve(justrouting.VroomRequest(
-    vehicles=[justrouting.Vehicle(id=1, profile="car",
-        start=[103.792, 1.324], end=[103.792, 1.324])],
-    jobs=[justrouting.Job(id=1, location=[103.797, 1.310])],
-))
+print(f"Distance: {route.distance / 1000:.1f} km")
+print(f"Duration: {route.duration / 60:.0f} min")
 ```
 
 ## JavaScript example
