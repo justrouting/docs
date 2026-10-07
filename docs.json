@@ -16,7 +16,6 @@
     "groups": [
       {
         "group": "Getting Started",
-        "icon": "rocket",
         "pages": [
           "index",
           "quickstart",
@@ -28,7 +27,6 @@
       },
       {
         "group": "API Reference",
-        "icon": "code",
         "pages": [
           "api-reference/directions",
           "api-reference/distance-matrix",
@@ -41,14 +39,12 @@
       },
       {
         "group": "MCP",
-        "icon": "sparkles",
         "pages": [
           "mcp/overview"
         ]
       },
       {
         "group": "OpenAPI",
-        "icon": "terminal",
         "pages": [
           "openapi/overview",
           "openapi/openapi.json GET /route/v1/{profile}/{coordinates}",
@@ -62,7 +58,6 @@
       },
       {
         "group": "Guides",
-        "icon": "book-open",
         "pages": [
           "guides/draw-route-on-map",
           "guides/turn-by-turn",
