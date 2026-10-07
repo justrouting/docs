@@ -1,7 +1,7 @@
 ---
 title: "Overview"
 description: "Machine-readable specification for the JustRouting API."
-icon: "globe"
+icon: "brackets-curly"
 ---
 
 # OpenAPI
