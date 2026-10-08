@@ -38,6 +38,15 @@
         ]
       },
       {
+        "group": "SDK",
+        "pages": [
+          "sdk/overview",
+          "sdk/py-client",
+          "sdk/go-client",
+          "sdk/js-client"
+        ]
+      },
+      {
         "group": "MCP",
         "pages": [
           "mcp/overview",
@@ -64,8 +73,7 @@
         "group": "Guides",
         "pages": [
           "guides/draw-route-on-map",
-          "guides/turn-by-turn",
-          "guides/sdks"
+          "guides/turn-by-turn"
         ]
       }
     ]
