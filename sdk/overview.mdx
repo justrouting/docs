@@ -1,0 +1,31 @@
+---
+title: "Overview"
+description: "Official JustRouting client libraries for Python, JavaScript/TypeScript, and Go — zero dependencies."
+icon: "cube"
+---
+
+## JustRouting SDK
+
+Official client libraries for every JustRouting API family — Directions, Distance Matrix, Map Matching, Trip, Nearest, Geocode, and Fleet Optimization. All SDKs are open source (MIT) and **zero third-party dependencies**, so they run on Lambda, Cloudflare Workers, and edge environments as-is, with typed errors and built-in 429 retries.
+
+| Language | Page | Install | Source |
+| --- | --- | --- | --- |
+| Python 3.9+ | [Python Client](/sdk/py-client) | `pip install justrouting` | [py-client](https://github.com/justrouting/py-client) |
+| JavaScript / TypeScript | [JavaScript Client](/sdk/js-client) | `npm install @justrouting/client` | [js-client](https://github.com/justrouting/js-client) |
+| Go | [Go Client](/sdk/go-client) | `go get github.com/justrouting/go-client` | [go-client](https://github.com/justrouting/go-client) |
+
+## Shared conventions
+
+- `new Client(apiKey)` attaches `Authorization: Bearer` to every request automatically
+- Coordinates always use `[lng, lat]` order
+- Unreachable matrix cells come back as `null` (not 0) — you decide how to handle them
+- Zero dependencies means they run on Lambda, Cloudflare Workers, and edge environments as-is
+
+## No SDK? No problem
+
+The SDKs are thin wrappers over plain REST. You can always call the HTTP endpoints directly — every API Reference page has curl examples.
+
+## Related
+
+- [Quickstart](/quickstart)
+- [Authentication](/authentication)
