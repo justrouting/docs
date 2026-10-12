@@ -1,31 +1,114 @@
 ---
 title: "Overview"
-description: "Official JustRouting client libraries for Python, JavaScript/TypeScript, and Go — zero dependencies."
+description: "Official JustRouting SDKs for Python, Go, and JavaScript. Build routing, distance matrix, geocoding, and fleet optimization into your applications."
 icon: "cube"
 ---
 
-## JustRouting SDK
+# SDKs
 
-Official client libraries for every JustRouting API family — Directions, Distance Matrix, Map Matching, Trip, Nearest, Geocode, and Fleet Optimization. All SDKs are open source (MIT) and **zero third-party dependencies**, so they run on Lambda, Cloudflare Workers, and edge environments as-is, with typed errors and built-in 429 retries.
+Use the official JustRouting SDKs to integrate routing capabilities into
+your application without manually building HTTP requests.
 
-| Language | Page | Install | Source |
+JustRouting SDKs provide simple, typed interfaces for:
+
+- Driving and motorcycle routes
+- Distance matrices
+- Map Matching
+- Trip
+- Nearest
+- Geocoding
+- Fleet optimization
+
+All SDKs connect to the same JustRouting API and support Southeast
+Asia-focused routing.
+
+## Available SDKs
+
+| Language | Package | Installation | Source |
 | --- | --- | --- | --- |
-| Python 3.9+ | [Python Client](/sdk/py-client) | `pip install justrouting` | [py-client](https://github.com/justrouting/py-client) |
-| JavaScript / TypeScript | [JavaScript Client](/sdk/js-client) | `npm install @justrouting/client` | [js-client](https://github.com/justrouting/js-client) |
-| Go | [Go Client](/sdk/go-client) | `go get github.com/justrouting/go-client` | [go-client](https://github.com/justrouting/go-client) |
+| Python | `justrouting` | `pip install justrouting` | [py-client](https://github.com/justrouting/py-client) |
+| Go | `github.com/justrouting/go-client` | `go get github.com/justrouting/go-client` | [go-client](https://github.com/justrouting/go-client) |
+| JavaScript / TypeScript | `@justrouting/client`  | `npm install @justrouting/client` | [js-client](https://github.com/justrouting/js-client) |
 
-## Shared conventions
+## Quick Start
 
-- `new Client(apiKey)` attaches `Authorization: Bearer` to every request automatically
-- Coordinates always use `[lng, lat]` order
-- Unreachable matrix cells come back as `null` (not 0) — you decide how to handle them
-- Zero dependencies means they run on Lambda, Cloudflare Workers, and edge environments as-is
+All SDKs follow the same workflow:
 
-## No SDK? No problem
+1.  Create a client with your API key
+2.  Send a routing request
+3.  Use the response in your application
 
-The SDKs are thin wrappers over plain REST. You can always call the HTTP endpoints directly — every API Reference page has curl examples.
+## API Key
 
-## Related
+Create a free API key from the JustRouting dashboard.
 
-- [Quickstart](/quickstart)
-- [Authentication](/authentication)
+Each SDK automatically authenticates requests using your API key.
+
+Environment variable:
+
+``` bash
+export JUSTROUTING_API_KEY="your_api_key"
+```
+
+## Coordinates
+
+JustRouting uses GeoJSON coordinate order:
+
+``` text
+[longitude, latitude]
+```
+
+Example:
+
+``` text
+Singapore CBD:
+[103.8198, 1.3521]
+```
+
+## Choose an SDK
+
+### Python
+
+Best for:
+
+-   Data processing
+-   Automation scripts
+-   Backend services
+-   AI applications
+
+[Read Python SDK →](/sdk/py-client)
+
+### Go
+
+Best for:
+
+-   High-performance backend services
+-   Logistics systems
+-   Production APIs
+
+[Read Go SDK →](/sdk/go-client)
+
+### JavaScript
+
+Best for:
+
+-   Node.js applications
+-   Web applications
+-   Serverless functions
+
+[Read JavaScript SDK →](/sdk/js-client)
+
+## REST API
+
+Prefer direct HTTP access?
+
+You can use the JustRouting REST API with any programming language.
+
+[View API Reference →](/api-reference)
+
+## Building AI Agents?
+
+JustRouting also provides an MCP server for AI assistants and agent
+workflows.
+
+[Learn about MCP →](/guides/mcp)
