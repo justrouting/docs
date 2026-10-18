@@ -51,19 +51,24 @@ import justrouting
 
 client = justrouting.Client("YOUR_API_KEY")
 
-solution = client.vroom.solve(justrouting.VroomRequest(
+solution = client.optimization.solve(justrouting.OptimizationRequest(
     vehicles=[
         justrouting.Vehicle(id=1, profile="car",
             start=[103.79234106, 1.32463108],
-            end=[103.79234106, 1.32463108]),
+            end=[103.79234106, 1.32463108],
+            capacity=[500]),
         justrouting.Vehicle(id=2, profile="car",
             start=[103.82324228, 1.32408622],
-            end=[103.82324228, 1.32408622]),
+            end=[103.82324228, 1.32408622],
+            capacity=[1000]),
     ],
     jobs=[
-        justrouting.Job(id=1, location=[103.79751693, 1.31035001]),
-        justrouting.Job(id=2, location=[103.78432387, 1.31490148]),
-        justrouting.Job(id=3, location=[103.79763397, 1.31980519]),
+        justrouting.Job(id=1, location=[103.79751693, 1.31035001], pickup=[20]),
+        justrouting.Job(id=2, location=[103.78432387, 1.31490148], pickup=[15]),
+        justrouting.Job(id=3, location=[103.79763397, 1.31980519], pickup=[95]),
+        justrouting.Job(id=4, location=[103.81234512, 1.31824846], pickup=[60]),
+        justrouting.Job(id=5, location=[103.82152987, 1.30984208], pickup=[35]),
+        justrouting.Job(id=6, location=[103.83701939, 1.32143977], delivery=[75]),
     ],
 ))
 
@@ -74,7 +79,7 @@ for route in solution.routes:
 
 ## Input structure
 
-The request body is a JSON object. Only `vehicles` is required.
+The request body is a JSON object with `vehicles` plus at least one task — `jobs` and/or `shipments`.
 
 | Key | Type | Description |
 | --- | --- | --- |
@@ -95,7 +100,7 @@ The request body is a JSON object. Only `vehicles` is required.
 ```
 
 <Info>
-  A problem with `shipments` only (no `jobs`) is valid.
+  A problem with `shipments` only (no `jobs`) is valid — but at least one task is required: a request with `vehicles` only returns an input error (`code: 2`).
 </Info>
 
 ## Vehicles
@@ -111,13 +116,13 @@ The request body is a JSON object. Only `vehicles` is required.
 | `start_index` | int | | Row/column in custom matrices. |
 | `end` | `[lng, lat]` | | End depot; same as `start` for a round trip. |
 | `end_index` | int | | Row/column in custom matrices. |
-| `capacity` | int[] | | Multidimensional capacity (e.g. weight, volume); the load at each route step must stay below capacity. |
+| `capacity` | int[] | | Multidimensional capacity (e.g. weight, volume); the load at each route step must not exceed capacity. Omitted = an empty vector (length 0) — see Capacity restrictions under [Semantics notes](#semantics-notes). |
 | `skills` | int[] | `[]` | Vehicle skills; a task's `skills` must be a subset. |
 | `type` | string | | Vehicle type, referenced by per-type setup/service overrides. |
 | `time_window` | `[start, end]` | | Working hours. |
 | `breaks` | array | | Rest periods, see [Breaks](#breaks). |
 | `speed_factor` | float | `1` | Scales all travel times for this vehicle, range `(0, 5]`, two decimals precision. |
-| `max_tasks` | int | | Maximum number of tasks in this vehicle's route. |
+| `max_tasks` | int | unlimited | Maximum number of tasks in this vehicle's route. |
 | `max_travel_time` | int | | Maximum travel time in seconds. |
 | `max_distance` | int | | Maximum distance in meters. |
 | `costs` | object | | Cost weights, see [Vehicle costs](#vehicle-costs). |
@@ -133,7 +138,7 @@ The request body is a JSON object. Only `vehicles` is required.
 | `per_km` | int | `0` | Cost for one kilometer of travel. |
 
 <Warning>
-  A non-default `per_hour` defines travel costs from travel times, so combining it with a custom `costs` matrix for the same vehicle is inconsistent and returns an error.
+  A non-default `per_hour` or `per_km` defines travel costs from travel times, so combining it with a custom `costs` matrix for the same vehicle is inconsistent and returns an error.
 </Warning>
 
 ### Breaks
@@ -167,8 +172,8 @@ The request body is a JSON object. Only `vehicles` is required.
 | `service` | int | `0` | Service duration in seconds. |
 | `setup_per_type` | object | | Setup durations per vehicle type; overrides `setup` for vehicles of that type. |
 | `service_per_type` | object | | Service durations per vehicle type; overrides `service` for vehicles of that type. |
-| `delivery` | int[] | | Amounts to deliver; assumed loaded at vehicle start. |
-| `pickup` | int[] | | Amounts to pick up; assumed brought back at vehicle end. |
+| `delivery` | int[] | | Amounts to deliver; assumed loaded at vehicle start. Same length as vehicle `capacity` — see Capacity restrictions under [Semantics notes](#semantics-notes). |
+| `pickup` | int[] | | Amounts to pick up; assumed brought back at vehicle end. Same length as vehicle `capacity`. |
 | `skills` | int[] | `[]` | Skills required; the vehicle must have all of them. |
 | `priority` | int | `0` | `0-100`; higher-priority tasks are preferred when not everything fits. |
 | `time_windows` | `[[start, end], ...]` | | Valid slots for service start. |
@@ -185,7 +190,7 @@ A shipment is a pickup and a delivery performed by the same vehicle, pickup firs
 | --- | --- | --- | --- |
 | `pickup` | object | — | Required, a shipment step. |
 | `delivery` | object | — | Required, a shipment step. |
-| `amount` | int[] | | Amounts loaded at the pickup and unloaded at the delivery. |
+| `amount` | int[] | | Amounts loaded at the pickup and unloaded at the delivery. Same length as vehicle `capacity`. |
 | `skills` | int[] | `[]` | Skills required; the vehicle must have all of them. |
 | `priority` | int | `0` | `0-100`; higher-priority shipments are preferred when not everything fits. |
 
@@ -285,9 +290,82 @@ Every route in the response then carries a polyline and distance:
 
 `options.g` is the JSON equivalent of upstream VROOM's `-g` CLI flag.
 
+## Complete example
+
+A realistic problem with two-dimensional capacity, skills, time windows and geometry. Job 4's `delivery` of `[600, 12]` exceeds every vehicle's capacity, so it lands in `unassigned` — the call still returns `200` / `code: 0`:
+
+```json complete-example-request.json
+{
+  "vehicles": [
+    {
+      "id": 1, "profile": "car",
+      "start": [103.79234106, 1.32463108], "end": [103.79234106, 1.32463108],
+      "capacity": [500, 10], "skills": [1], "time_window": [0, 28800]
+    },
+    {
+      "id": 2, "profile": "motorcycle",
+      "start": [103.82324228, 1.32408622], "end": [103.82324228, 1.32408622],
+      "capacity": [40, 2]
+    }
+  ],
+  "jobs": [
+    { "id": 1, "location": [103.79751693, 1.31035001], "delivery": [20, 1], "skills": [1], "time_windows": [[0, 14400]] },
+    { "id": 2, "location": [103.78432387, 1.31490148], "delivery": [15, 1], "skills": [1], "time_windows": [[0, 14400]] },
+    { "id": 3, "location": [103.79763397, 1.31980519], "delivery": [400, 8], "skills": [1], "time_windows": [[0, 14400]] },
+    { "id": 4, "location": [103.81234512, 1.31824846], "delivery": [600, 12], "time_windows": [[0, 14400]] },
+    { "id": 5, "location": [103.82152987, 1.30984208], "delivery": [10, 1], "priority": 100 }
+  ],
+  "options": { "g": true }
+}
+```
+
+```json complete-example-response.json
+{
+  "code": 0,
+  "summary": { "cost": 4963, "routes": 2, "unassigned": 1, "delivery": [445, 11], "duration": 2590, "violations": [] },
+  "routes": [
+    {
+      "vehicle": 1,
+      "cost": 2450,
+      "steps": [
+        { "type": "start", "arrival": 0, "load": [435, 10] },
+        { "type": "job", "id": 1, "arrival": 118, "load": [415, 9] },
+        { "type": "job", "id": 2, "arrival": 405, "load": [400, 8] },
+        { "type": "job", "id": 3, "arrival": 1120, "load": [0, 0] },
+        { "type": "end", "arrival": 1980, "load": [0, 0] }
+      ],
+      "geometry": "_bhGmo~wRPMNKNIX...",
+      "distance": 21300,
+      "duration": 1980
+    },
+    {
+      "vehicle": 2,
+      "cost": 2513,
+      "steps": [
+        { "type": "start", "arrival": 0, "load": [10, 1] },
+        { "type": "job", "id": 5, "arrival": 305, "load": [0, 0] },
+        { "type": "end", "arrival": 610, "load": [0, 0] }
+      ],
+      "geometry": "_bhGmo~wRPM...",
+      "distance": 4100,
+      "duration": 610
+    }
+  ],
+  "unassigned": [
+    { "id": 4, "type": "job", "location": [103.81234512, 1.31824846] }
+  ]
+}
+```
+
+Jobs 1–3 require skill 1, so only the car can serve them; job 5 is small enough for the motorcycle. Job 4 can't fit anywhere, which is why `summary.unassigned` is 1 — not an error.
+
 ## Response
 
 The response is a JSON object with `code`, optionally `error`, and — on success — `summary`, `routes` and `unassigned`.
+
+<Warning>
+  **HTTP 200 / `code: 0` does not mean every task was served.** Tasks that cannot be served — insufficient capacity, missing skills, unsatisfiable time windows — are silently moved to `unassigned`. Always check `summary.unassigned`, and use `priority` to control which tasks are dropped first.
+</Warning>
 
 ### Status codes
 
@@ -396,6 +474,8 @@ A task's `time_windows` constrain when its service **starts**; early arrivals wa
 - Relative: `[0, 14400]` = within 4 hours of the planning horizon start
 - Absolute: real UNIX timestamps — then `arrival` values in the output are timestamps too
 
+Use one clock for the whole problem — relative or absolute. Mixing them produces nonsensical results, because every value is then interpreted on the same clock.
+
 ## Semantics notes
 
 <Accordion title="Task locations and custom matrices">
@@ -403,7 +483,12 @@ A task's `time_windows` constrain when its service **starts**; early arrivals wa
 </Accordion>
 
 <Accordion title="Capacity restrictions">
-  Amounts are multidimensional — vehicles carry `capacity`, jobs `delivery`/`pickup`, shipments `amount`. A vehicle may serve a set of tasks only if the resulting load at each route step stays below `capacity` for each metric. All job deliveries are assumed loaded at vehicle start; all job pickups are assumed brought back at vehicle end. When using multiple components, put the most limiting metric first.
+  Amounts are multidimensional — vehicles carry `capacity`, jobs `delivery`/`pickup`, shipments `amount`. A vehicle may serve a set of tasks only if the resulting load at each route step does not exceed `capacity` for each metric. All job deliveries are assumed loaded at vehicle start; all job pickups are assumed brought back at vehicle end. When using multiple components, put the most limiting metric first.
+
+  **Two rules that bite:**
+
+  1. **All amount vectors must share the same length across the whole problem.** Omitting `capacity` counts as length 0, so a vehicle without `capacity` combined with a task carrying amounts returns `400` with `"Inconsistent delivery length: 1 instead of 0."` (the message names the offending key: `delivery`, `pickup` or `amount`).
+  2. **Insufficient capacity is not an error.** A `capacity: [0]` (or simply too small) silently moves tasks to `unassigned` — the response is still `200` / `code: 0`. Always check `summary.unassigned`.
 </Accordion>
 
 <Accordion title="Skills">
@@ -426,6 +511,24 @@ A task's `time_windows` constrain when its service **starts**; early arrivals wa
   Providing `steps` for a vehicle in solving mode forces the search to start from your route as a single search path, instead of several concurrent searches. Only steps with `type` `job`, `pickup` or `delivery` are used; `service_*` keys are ignored; an error is returned if the provided route violates any constraint. Plan-mode ETA selection (`-c` in upstream VROOM) is not exposed by the hosted API.
 </Accordion>
 
+## Troubleshooting
+
+**`"Inconsistent delivery length: X instead of Y"` (HTTP 400, `code: 2`)**
+
+All amount vectors must share the same length across the whole problem. Omitting `capacity` counts as length 0. Fix: give every `capacity` / `delivery` / `pickup` / `amount` the same number of components, e.g. `"capacity": [1000, 500]` with `"delivery": [10, 5]`.
+
+**`routes` is empty and every task sits in `unassigned` (HTTP 200, `code: 0`)**
+
+Nothing was served, but this is not an error. Check, in order:
+
+1. **Capacity.** Sum the tasks' `delivery`/`pickup` per component and compare with each vehicle's `capacity`. `capacity: [0]` serves nothing.
+2. **Skills.** Every task's `skills` must be a subset of the serving vehicle's `skills`.
+3. **Time windows.** The task's `time_windows` must overlap what the vehicle can physically reach within its `time_window`.
+
+**Some tasks are missing from the response**
+
+See `unassigned` — a `200` response with `code: 0` may still drop tasks. Use `priority` to choose which tasks are dropped.
+
 ## Size limits
 
 | Plan | Vehicles / tasks |
@@ -438,6 +541,7 @@ A task's `time_windows` constrain when its service **starts**; early arrivals wa
 ## JustRouting extensions and compatibility
 
 - `profile` is restricted to `car` and `motorcycle` — upstream profiles like `bike` are not available.
+- Vehicles in a single request may mix `car` and `motorcycle` profiles: each vehicle is routed with its own profile (the solver computes one matrix per profile), and every profile in the request must have an enabled map for the request's country.
 - `options` is the JSON equivalent of VROOM's CLI flags; only `g` (route geometry) is currently supported.
 - Deprecated upstream keys are not supported: `job.amount` (use `delivery`/`pickup`), the top-level `matrix` (use `matrices`), `step.job` (use `step.id`), `summary.amount` (use `summary.delivery`/`summary.pickup`).
 - The **OpenAPI → optimize** pages hold the complete, machine-readable schema.
