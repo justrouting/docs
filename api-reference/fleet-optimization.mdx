@@ -32,13 +32,16 @@ curl -X POST "https://api.justrouting.tech/optimize" \
   -H "Content-Type: application/json" \
   -d '{
     "vehicles": [
-      { "id": 1, "profile": "car", "start": [103.79234106, 1.32463108], "end": [103.79234106, 1.32463108] },
-      { "id": 2, "profile": "car", "start": [103.82324228, 1.32408622], "end": [103.82324228, 1.32408622] }
+      { "id": 1, "profile": "car", "start": [103.79234106, 1.32463108], "end": [103.79234106, 1.32463108], "capacity": [500] },
+      { "id": 2, "profile": "car", "start": [103.82324228, 1.32408622], "end": [103.82324228, 1.32408622], "capacity": [1000] }
     ],
     "jobs": [
-      { "id": 1, "location": [103.79751693, 1.31035001] },
-      { "id": 2, "location": [103.78432387, 1.31490148] },
-      { "id": 3, "location": [103.79763397, 1.31980519] }
+      { "id": 1, "location": [103.79751693, 1.31035001], "pickup": [20] },
+      { "id": 2, "location": [103.78432387, 1.31490148], "pickup": [15] },
+      { "id": 3, "location": [103.79763397, 1.31980519], "pickup": [95] },
+      { "id": 4, "location": [103.81234512, 1.31824846], "pickup": [60] },
+      { "id": 5, "location": [103.82152987, 1.30984208], "pickup": [35] },
+      { "id": 6, "location": [103.83701939, 1.32143977], "delivery": [75] }
     ]
   }'
 ```
@@ -205,7 +208,7 @@ Same fields as a job, minus the shared keys above:
 ```json shipment-example.json
 {
   "vehicles": [
-    { "id": 1, "profile": "car", "start": [103.79234106, 1.32463108], "end": [103.79234106, 1.32463108] }
+    { "id": 1, "profile": "car", "start": [103.79234106, 1.32463108], "end": [103.79234106, 1.32463108], "capacity": [800] }
   ],
   "shipments": [
     {
