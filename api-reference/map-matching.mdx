@@ -27,7 +27,7 @@ GET https://api.justrouting.tech/match/v1/{profile}/{coordinates}
 
 | Parameter | Type | Default | Description |
 | --- | --- | --- | --- |
-| `timestamps` | string | — | UNIX timestamps in seconds for each point, **monotonically increasing**, one per coordinate |
+| `timestamps` | string | — | **Required.** UNIX timestamps in seconds for each point, **monotonically increasing**, one per coordinate. Requests without `timestamps` are rejected with `400 Missing timestamps` |
 | `radiuses` | string | `5` | Standard deviation of GPS precision in meters per point — use device-reported accuracy. The search area is sized so the correct candidate is found 99.9% of the time; larger radii mean more candidates and far-away candidates are penalized less |
 | `steps` | bool | `false` | Return turn-by-turn steps |
 | `geometries` | string | `polyline` | Same as [Directions](/api-reference/directions) |
@@ -115,6 +115,7 @@ for route in matching.matchings:
 
 ## Best practices
 
+- `timestamps` is required: send device-reported UNIX seconds per point, monotonically increasing. Without time information the match is computed on geometry alone and time-dependent features (gap splitting, speed plausibility) are lost
 - Use device-reported accuracy for `radiuses`: `Location.getAccuracy()` (Android) / `CLLocation.horizontalAccuracy` (iOS)
 - High-frequency sampling (1–5s) gives the best traces; slow-speed drift points get dropped automatically
 - All input coordinates must be in the same country (see [Coverage](/coverage))
