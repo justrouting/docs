@@ -207,6 +207,8 @@ fmt.Println(len(solution.Unassigned), "task(s) could not be served")
 
 Use `Shipments` instead of `Jobs` for pickup-and-delivery pairs that must be served in order by the same vehicle.
 
+The full engine feature set is modeled: capacities, skills, priorities, time windows, breaks, per-vehicle costs, speed factors and limits, per-type setup/service overrides, custom matrices (with `*_index` locations), warm-start vehicle steps, and route geometry via `Options.Geometry`.
+
 ### Health
 
 The only call that works without an API key, which makes it a useful connectivity check.
@@ -268,7 +270,7 @@ if errors.As(err, &apiErr) {
 
 ### Retries
 
-Rate limits (429), server errors (5xx), and transport failures are retried with exponential backoff and jitter; a `Retry-After` header takes precedence when present. Other 4xx responses are returned immediately — they would fail identically on a retry and would still consume quota.
+Rate limits (429), server errors (500, 502, 503, 504), and transport failures are retried with exponential backoff and jitter; a `Retry-After` header takes precedence when present. Other 4xx responses are returned immediately — they would fail identically on a retry and would still consume quota.
 
 Retries are bounded by the context, not the HTTP client's timeout. A timeout on your `http.Client` applies to each individual attempt; use a context deadline to bound the whole call:
 
