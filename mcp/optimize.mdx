@@ -173,43 +173,34 @@ Prompt for an MCP-capable agent, e.g. Claude or Codex
 I have two vans available to pick up packages from six customers.
 
 Vans:
-- V1 starts at 249 Sixth Ave, Singapore 275771
-- V2 starts at 8 Harlyn Rd, Singapore 299445
+- V1 starts at 249 Sixth Ave, Singapore 275771. Maximum payload capacity: 500 kg.
+- V2 starts at 8 Harlyn Rd, Singapore 299445. Maximum payload capacity: 1,000 kg.
 
 Customers:
-- C1: 75 Jln Kelabu Asap, Singapore 278268
-- C2: 20 Mount Sinai Rd, Singapore 276854
-- C3: 10 Bin Tong Park, Singapore 269792
-- C4: 9 Cluny Park, Singapore 259619
-- C5: 28 Nassim Rd, Singapore 258403
-- C6: 30 Chancery Ln, Singapore 309549
+- C1: 75 Jln Kelabu Asap, Singapore 278268. Est. weight: 200 kg.
+- C2: 20 Mount Sinai Rd, Singapore 276854. Package Est. weight: 150 kg.
+- C3: 10 Bin Tong Park, Singapore 269792. Est. weight: 100 kg.
+- C4: 9 Cluny Park, Singapore 259619. Est. weight: 600 kg.
+- C5: 28 Nassim Rd, Singapore 258403. Est. weight: 150 kg.
+- C6: 30 Chancery Ln, Singapore 309549. Est. weight: 200 kg.
 
+Both vans must return to their respective starting locations after completing all assigned pickups.
 How should these six pickup tasks be assigned and ordered between the two vans?
 
 # Solved — all 6 jobs assigned, none left unassigned. Optimal assignment:
 #
-# Van V1 — starts at 249 Sixth Ave (total ~19.4 min)
-# ┌──────┬──────────┬────────────────────┬────────────┐
-# │ Stop │ Customer │      Address       │ Arrives at │
-# ├──────┼──────────┼────────────────────┼────────────┤
-# │ 1    │ C2       │ 20 Mount Sinai Rd  │ ~6 min     │
-# ├──────┼──────────┼────────────────────┼────────────┤
-# │ 2    │ C1       │ 75 Jln Kelabu Asap │ ~13 min    │
-# ├──────┼──────────┼────────────────────┼────────────┤
-# │ 3    │ C3       │ 10 Bin Tong Park   │ ~17 min    │
-# └──────┴──────────┴────────────────────┴────────────┘
+# ┌───────┬──────────────────────────────────────────────────────┬────────────────┬───────────┐
+# │  Van  │                        Route                         │      Load      │ Duration  │
+# ├───────┼──────────────────────────────────────────────────────┼────────────────┼───────────┤
+# │  V1   │ 249 Sixth Ave → C2 → C1 → C3 → back to 249 Sixth Ave │ 450 / 500 kg   │ ~19.5 min │
+# ├───────┼──────────────────────────────────────────────────────┼────────────────┼───────────┤
+# │  V2   │ 8 Harlyn Rd → C6 → C5 → C4 → back to 8 Harlyn Rd     │ 950 / 1,000 kg │ ~29 min   │
+# └───────┴──────────────────────────────────────────────────────┴────────────────┴───────────┘
 #
-#  Van V2 — starts at 8 Harlyn Rd (total ~29.0 min)
-# ┌──────┬──────────┬────────────────┬────────────┐
-# │ Stop │ Customer │    Address     │ Arrives at │
-# ├──────┼──────────┼────────────────┼────────────┤
-# │ 1    │ C6       │ 30 Chancery Ln │ ~5 min     │
-# ├──────┼──────────┼────────────────┼────────────┤
-# │ 2    │ C5       │ 28 Nassim Rd   │ ~14 min    │
-# ├──────┼──────────┼────────────────┼────────────┤
-# │ 3    │ C4       │ 9 Cluny Park   │ ~23 min    │
-# └──────┴──────────┴────────────────┴────────────┘
+#  Why this split
 #
-# Each van returns to its own depot afterward. The solver minimizes total fleet driving time (~48.5 min combined),
-# which is why V1 picks up the western cluster and V2 covers the eastern side
+#  - C4's 600 kg package exceeds V1's 500 kg limit, so C4 must go on V2. That leaves V2 with 400 kg spare.
+#  - V1's 500 kg limit fits C1 + C2 + C3 = 450 kg exactly.
+#  - The solver then picked the stop order that minimizes driving within each van's assigned set.
+#  - Final loads: V1 carries 450/500 kg, V2 carries 950/1,000 kg — both within capacity, all six customers served.
 ```
